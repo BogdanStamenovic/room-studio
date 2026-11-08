@@ -126,6 +126,7 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **Measured on one test call each, 2026-11-08, with synthesized speech:** agent connected 3.6 s after media started, first audio 2.0 s after the speaker stopped (a one-line agent reply), first call from cold about 18 s extra to load speech recognition.
 - **Hanging up takes about 25 s to reach the agent and free the GPU** (measured on one call; the audio socket closes at once, but the daemon notices later). Calling back inside that window has not been tested.
 - **Not tested on a real phone or a real microphone**, only Chrome with a fake mic and paced synthesized speech.
+- **Path-traced renders freeze during a call.** `scripts/render-stills.mjs` starts `scripts/yield-to-calls.sh`, which SIGSTOPs the job while gpu-share or hotline-calld shows a call, because at 99% GPU speech recognition took 37-43 s to load instead of 4-6 s. Frozen jobs keep their VRAM, and the check runs every 2 s, so a call's first seconds can still overlap.
 - **Deploying the site drops a call in progress**, because the audio runs through its process. Check `active_calls` on hotline-calld's `/health` first.
 - **One call at a time. A phone that locks may cut the mic.** The page asks the screen to stay on where the browser allows it.
 - **Messages typed on the site are not verified Discord messages.** Any process on the box could post the same thing, so money and outward actions still need a message from Discord itself.

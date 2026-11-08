@@ -4,6 +4,13 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+// A path-trace holds the GPU at 99%, which starves a live voice call's speech recognition. This freezes the job for any call.
+if (!process.env.RENDER_NO_YIELD) {
+  spawn('sh', [fileURLToPath(new URL('./yield-to-calls.sh', import.meta.url))], { stdio: 'ignore', detached: true, env: { ...process.env, IDLE_LIMIT: '30' } }).unref();
+}
 
 const arg = (name, dflt) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : dflt; };
 const base = arg('base', 'http://127.0.0.1:3388');
