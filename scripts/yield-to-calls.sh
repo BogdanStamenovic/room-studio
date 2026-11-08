@@ -18,9 +18,11 @@ in_call() {
   # and wrongly rendering is what broke his call.
   # Leases and voice legs mean someone is on the line. Not call_active or active_calls: both stay
   # true long after a hang-up, while the call's conversation is open, which would freeze a job for hours.
-  s=$(curl -s -m 2 "$STATUS") || return 0
+  # Spaces are squeezed out first: gpu-share writes compact JSON and hotline-calld does not.
+  s=$(curl -s -m 2 "$STATUS" | tr -d ' ')
   case $s in *'"call_leases":{}'*) ;; *) return 0 ;; esac
-  h=$(curl -s -m 2 "$CALLD") || return 0
+  h=$(curl -s -m 2 "$CALLD" | tr -d ' ')
+  case $h in *'"inCall":true'*) return 0 ;; esac
   case $h in *'"voice_legs":0'*) return 1 ;; esac
   return 0
 }
