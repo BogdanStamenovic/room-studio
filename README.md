@@ -80,7 +80,7 @@ A study, in millimetres, with x and y on the floor (+y is north) and z up:
 |---|---|---|
 | Stills | JPEGs path-traced ahead of time | Anything that shows an image; needs no WebGL |
 | Look around | A path-traced 360 from inside the room; drag to look | Anything with basic WebGL |
-| Orbit | Live PBR with sun shadows, and on a desktop GPU ambient occlusion and a live mirror. Slider folds the seat. From outside, walls in the way are cut away | Anything with WebGL 2; a slow frame rate drops ambient occlusion and the mirror once |
+| Orbit | Live PBR with sun shadows, and on a desktop GPU ambient occlusion and a live mirror. Sliders fold the seat and run the table through its order of motion. From outside, walls in the way are cut away | Anything with WebGL 2; a slow frame rate drops ambient occlusion and the mirror once |
 | Refine | Path traces the current Orbit view on the viewer's own GPU, starting noisy and clearing over a minute or so | Desktop GPUs, from inside the room only |
 
 The scene is built in the browser from `room.json`, `items.json` and the numbers in `web/hifi/plan.mjs`: real window holes, rounded forms, generated oak, parquet and fabric textures. Nothing is a mesh file, so no asset downloads and no build step. `plan.mjs` has no three.js in it, so `test/hifi-plan.test.mjs` checks the design against the measured room.
@@ -91,10 +91,15 @@ To make the stills, with a server running on the data directory they belong to:
 node scripts/render-stills.mjs --base http://127.0.0.1:3300 --password P --out "$DATA/renders" JOBS.json
 ```
 
-It drives the real page in headless Chrome on the real GPU and writes `NAME.png`, `NAME.jpg` and `manifest.json`. Each job is the arguments of `hifi.renderPT` in `web/render.js`, plus a `label` to list it. Copies live in `$DATA/renders`, served behind the login, and not in this repo: the repo is public and these show his room.
+It drives the real page in headless Chrome on the real GPU and writes `NAME.png`, `NAME.jpg` and `manifest.json`. Each job is the arguments of `hifi.renderPT` in `web/render.js`, plus a `label` to list it and an optional `group` (`table` files it under the Table button). Copies live in `$DATA/renders`, served behind the login, and not in this repo: the repo is public and these show his room.
+
+`scripts/table-study.mjs` writes the table's block study from the same `plan.mjs` numbers as the render, so `room-studio study put` keeps them in step.
 
 Choices that may look odd:
 
+- **The table's set has a fold-out leaf.** With a plain 700 deep tray under the closed top there is nowhere for a 184 cm person's thighs. Stowed, the leaf stands up behind the knees; raised, it folds out and lands on the front beam, so leaning on it loads steel and not the lift.
+- **The table's top rides on a wall rail with a leg at the far corner, not telescopic slides.** A slide that extends 100 percent of its length sags most exactly where the load is. Rail, front roller and leg hold it at four points at every position, once the leg is down.
+- **Rail bare over the radiator, duct only south of it.** A cover over the radiator would stop the heat rising.
 - **Stills first, not live path tracing.** See the numbers under Limitations: a phone cannot do it, and even an RTX 4060 needs minutes.
 - **`RANDOM_TYPE` is forced to 0 in `web/hifi/pt.mjs`.** three-gpu-pathtracer 0.0.24's default sampler left a fixed per-pixel speckle on three 0.180: noise on a flat wall measured 78.0, 73.9 and 74.8 at 25, 100 and 400 samples. With plain PCG random it is 38.0, 20.4 and 10.5, halving per four times the samples as it should.
 - **Three.js stays at 0.180, the path tracer at 0.0.24.** Newer path tracer releases need three 0.185 or later, which would touch the block viewer.
@@ -136,4 +141,5 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **The live orbit is not the stills.** It has no real bounce light, so it is flatter and brighter. Judge the design on the stills.
 - **Refine needs the camera inside the room** and at least a 700 px short screen edge. Phones are refused by screen size, which is a guess at what they can do.
 - **Stills do not update themselves.** A design change means rerunning `scripts/render-stills.mjs`. Live orbit and Refine follow the code at once.
+- **The table is a design, not an engineered machine.** Every size is a proposal, the radiator and the server's case are unmeasured, and no load, deflection or tipping calculation has been done. The motors' torque margins are hand estimates against REV's published stall figures. The location under the west windows is a proposal.
 - **No backups.** Measurements keep a history in the data dir, on the same disk. A deleted photo moves to `trash/` there.

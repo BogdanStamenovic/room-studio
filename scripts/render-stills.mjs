@@ -25,7 +25,7 @@ function updateManifest(job) {
   if (!job.label) return;
   const file = path.join(out, 'manifest.json');
   const m = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { stills: [], panos: [] };
-  const entry = { file: `${job.name}.jpg`, label: job.label, ...(job.shared ? {} : { variant: job.variant || 'corner' }), ...(job.look ? { look: job.look } : {}) };
+  const entry = { file: `${job.name}.jpg`, label: job.label, ...(job.shared ? {} : { variant: job.variant || 'corner' }), ...(job.look ? { look: job.look } : {}), ...(job.group ? { group: job.group } : {}) };
   const list = job.equirect ? m.panos : m.stills;
   const i = list.findIndex((e) => e.file === entry.file);
   if (i >= 0) list[i] = entry; else list.push(entry);

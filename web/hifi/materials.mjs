@@ -180,6 +180,21 @@ function projected() {
   return t;
 }
 
+/** Something plausible on the monitor: a dark terminal. Emissive, so it reads as switched on. */
+function terminal() {
+  const c = canvas(512); const x = c.getContext('2d');
+  c.height = 288;
+  x.fillStyle = '#0b1014'; x.fillRect(0, 0, 512, 288);
+  const r = seeded(17);
+  for (let i = 0; i < 26; i++) {
+    x.fillStyle = i % 7 === 0 ? '#e0a050' : i % 3 === 0 ? '#7fc99a' : '#9db4c0';
+    x.fillRect(14 + (i % 5 === 0 ? 0 : 14), 12 + i * 10, 40 + r() * 330, 4);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export const UPHOLSTERY = { vermilion: 0xb93218, cobalt: 0x1f3fa8, saffron: 0xdf9410 };
 
 export function makeMaterials({ upholstery = 'vermilion' } = {}) {
@@ -221,6 +236,11 @@ export function makeMaterials({ upholstery = 'vermilion' } = {}) {
     fanWhite: S({ color: 0xe9e8e3, roughness: 0.42 }),
     // A projector only adds light to the wall, so the picture is wall paint plus a dim emission.
     image: S({ color: 0xece9e2, roughness: 0.9, emissive: 0xffffff, emissiveMap: projected(), emissiveIntensity: 0.3 }),
+    esd: S({ color: 0x2b3a42, roughness: 0.82 }), // ESTIMATE: the usual blue-grey anti-static mat
+    screen: S({ color: 0x050607, roughness: 0.14, emissive: 0xffffff, emissiveMap: terminal(), emissiveIntensity: 0.22 }),
+    pcb: S({ color: 0x14553a, roughness: 0.45 }),
+    copper: S({ color: 0xb87a3c, roughness: 0.35, metalness: 1 }),
+    stop: S({ color: accent, roughness: 0.4 }),
     glass: P({ color: 0xffffff, roughness: 0.02, metalness: 0, transmission: 1, thickness: 0, ior: 1.5, transparent: true, opacity: 0.12 }),
   };
 }

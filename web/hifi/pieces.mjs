@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { cushion, extrude, fillet, hold, mergeGeometries, pebble, roundRect, slab, softPad } from './forms.mjs';
-import { BED, BOX_TOP, CABLE_DIAMETER, CABLE_X, CEILING, CUSHION, CUSHION_EDGE_INSET, DECK_EDGE, DECK_THICK, EAST, HINGE, LEDGER, LIFT_LINE, REEL, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt, liftEyeAt } from './plan.mjs';
+import { BED, BOX_TOP, CABLE_DIAMETER, CABLE_X, CEILING, CUSHION, CUSHION_EDGE_INSET, DECK_EDGE, DECK_THICK, EAST, HAND_FOLD, HINGE, LEDGER, LIFT_LINE, REEL, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt, handWinchAt, liftEyeAt } from './plan.mjs';
 
 function mesh(geo, mat) {
   const m = new THREE.Mesh(geo, mat);
@@ -150,6 +150,20 @@ export function buildPlatform(variant, M) {
   root.add(mesh(block, M.steel));
   const line = mesh(new THREE.CylinderGeometry(LIFT_LINE.diameter / 2, LIFT_LINE.diameter / 2, 1, 8), M.steel);
   root.add(line);
+  // He folds it by hand: the haul runs along under the ceiling and down to a small hand winch past the seat's end.
+  const w = handWinchAt(variant);
+  const wy = EAST - 13;
+  root.add(mesh(mergeGeometries([
+    new THREE.CylinderGeometry(LIFT_LINE.diameter / 2, LIFT_LINE.diameter / 2, eyeMid.y - w.y, 8).translate(wy, (eyeMid.y + w.y) / 2, HAND_FOLD.runZ),
+    new THREE.CylinderGeometry(LIFT_LINE.diameter / 2, LIFT_LINE.diameter / 2, HAND_FOLD.runZ - w.z, 8).rotateX(Math.PI / 2).translate(wy, w.y, (HAND_FOLD.runZ + w.z) / 2),
+  ].map(nonIndexed)), M.steel));
+  root.add(mesh(new RoundedBoxGeometry(26, 40, 56, 3, 7).translate(wy, w.y, HAND_FOLD.runZ), M.steel));
+  root.add(mesh(mergeGeometries([
+    new RoundedBoxGeometry(10, 90, 130, 2, 4).translate(EAST - 5, w.y, w.z),
+    new THREE.CylinderGeometry(26, 26, 44, 24).rotateZ(Math.PI / 2).translate(EAST - 36, w.y, w.z),
+    new RoundedBoxGeometry(70, 12, 10, 2, 3).translate(EAST - 70, w.y, w.z + 34),
+    new THREE.CylinderGeometry(7, 7, 50, 12).translate(EAST - 100, w.y + 28, w.z + 34),
+  ].map(nonIndexed)), M.steel));
 
   // Three back cushions against the wall, one per person. Loose, so they come off before folding. ESTIMATE.
   const loose = new THREE.Group();

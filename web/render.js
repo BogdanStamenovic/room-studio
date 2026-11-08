@@ -11,7 +11,7 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k.startsWith('on')) e[k] = v; else e.setAttribute(k, v); } e.append(...kids); return e; };
 const params = new URLSearchParams(location.search);
 const scripted = params.has('scripted');
-const ui = { mode: 'stills', variant: 'corner', fold: 0, still: 0, manifest: { stills: [], panos: [] } };
+const ui = { mode: 'stills', variant: 'corner', subject: 'room', fold: 0, table: 0, still: 0, manifest: { stills: [], panos: [] } };
 let state = null;
 let sharedMaterials = null;
 
@@ -25,12 +25,12 @@ async function loadState() {
 window.hifi = {
   ready: loadState(),
   /** One path-traced image, returned as data URLs. */
-  async renderPT({ variant = 'corner', fold = 0, flapOpen = 0, view = 'hero', viewOverride, samples = 64, duty = 1, width = 1280, height = 720, bounces = 7, textureSize = 1024, exposure = 2.6, tone = 'neutral', equirect = null, denoise = null, jpeg = 0.9, lighting = 'day' }) {
+  async renderPT({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, view = 'hero', viewOverride, samples = 64, duty = 1, width = 1280, height = 720, bounces = 7, textureSize = 1024, exposure = 2.6, tone = 'neutral', equirect = null, denoise = null, jpeg = 0.9, lighting = 'day' }) {
     const { PathTrace } = await import('./hifi/pt.mjs');
     const c = document.createElement('canvas');
     c.width = width; c.height = height;
     const t0 = performance.now();
-    const b = buildScene(state, { variant, fold, flapOpen, forPathTracer: true, lighting, M: sharedMaterials });
+    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, forPathTracer: true, lighting, M: sharedMaterials });
     sharedMaterials = b.materials;
     const buildMs = performance.now() - t0;
     let camera = new THREE.PerspectiveCamera(58, width / height, 0.02, 60);
@@ -53,11 +53,11 @@ window.hifi = {
     return { url, jpg, ms, firstMs, buildMs, sceneMs: pt.buildMs, tris };
   },
   /** One rasterized frame of the live mode, with a real frame time. */
-  async renderRaster({ variant = 'corner', fold = 0, flapOpen = 0, view = 'hero', tier = 'high', width = 1280, height = 720, frames = 12 }) {
+  async renderRaster({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, view = 'hero', tier = 'high', width = 1280, height = 720, frames = 12 }) {
     const c = document.createElement('canvas');
     c.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:${height}px;visibility:hidden`;
     document.body.append(c);
-    const b = buildScene(state, { variant, fold, flapOpen, M: sharedMaterials });
+    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, M: sharedMaterials });
     sharedMaterials = b.materials;
     const r = new Raster(c, b, { tier });
     const v = VIEWS[view];
@@ -108,7 +108,7 @@ function ensureRaster(keepView = false) {
   disposeRaster();
   newCanvas();
   try {
-    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, M: sharedMaterials });
+    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, M: sharedMaterials });
     sharedMaterials = built.materials;
     raster = new Raster(canvas, built, { tier: params.get('tier') || pickTier() });
   } catch (e) {
@@ -201,7 +201,7 @@ async function startRefine() {
     overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
     overlay.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (session.stop) return; session.stop = true; status('The GPU gave up on path tracing. The stills are already path traced.'); });
     overlay.addEventListener('pointerdown', stopRefine);
-    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, forPathTracer: true, M: sharedMaterials });
+    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, forPathTracer: true, M: sharedMaterials });
     const cam = raster.camera.clone();
     cam.updateMatrixWorld(true);
     session.pt = await PathTrace.create(overlay, built, cam, { exposure: 2.6, tone: 'neutral', size: [overlay.width, overlay.height] });
@@ -247,17 +247,19 @@ function setMode(mode) {
 }
 
 function stillsFor() {
-  return ui.manifest.stills.filter((s) => !s.variant || s.variant === ui.variant);
+  return ui.manifest.stills.filter((s) => (!s.variant || s.variant === ui.variant) && (s.group || 'room') === ui.subject);
 }
 
 function render() {
   const modeBtn = (id, name, disabled) => el('button', { type: 'button', 'aria-pressed': String(ui.mode === id), ...(disabled ? { disabled: '' } : {}), onclick: () => setMode(id) }, name);
   const variantBtn = (id, name) => el('button', { type: 'button', 'aria-pressed': String(ui.variant === id), title: VARIANTS[id].title, onclick: () => { ui.variant = id; ui.still = 0; setMode(ui.mode); } }, name);
+  const subjectBtn = (id, name) => el('button', { type: 'button', 'aria-pressed': String(ui.subject === id), onclick: () => { ui.subject = id; ui.still = 0; render(); } }, name);
   const top = $('r-top');
   top.replaceChildren(
     el('a', { href: '/' }, 'Back'),
     el('span', { class: 'group' }, modeBtn('stills', 'Stills'), modeBtn('look', 'Look around', !ui.manifest.panos.length), modeBtn('orbit', 'Orbit')),
     el('span', { class: 'group' }, variantBtn('corner', 'Box in corner'), variantBtn('south', 'Box south')),
+    ...(ui.manifest.stills.some((s) => s.group === 'table') && ui.mode === 'stills' ? [el('span', { class: 'group' }, subjectBtn('room', 'Bed and seat'), subjectBtn('table', 'Table'))] : []),
   );
   const bar = $('r-views');
   if (ui.mode === 'stills') {
@@ -272,10 +274,13 @@ function render() {
     bar.replaceChildren(...list.map((p) => el('span', { class: 'r-note' }, p.label)));
   } else {
     const slider = el('input', { type: 'range', min: '0', max: '100', value: String(ui.fold * 100), 'aria-label': 'Fold the seat', oninput: (e) => { ui.fold = e.target.value / 100; raster?.built.platform.userData.setFold(ui.fold); if (raster) raster.dirty = true; } });
-    const go = (name) => { const v = VIEWS[name]; raster?.setView(P(...v.pos), P(...v.at), v.fov); };
+    const tableSlider = el('input', { type: 'range', min: '0', max: '100', value: String(ui.table * 100), 'aria-label': 'Open the table', oninput: (e) => { ui.table = e.target.value / 100; raster?.built.table.userData.setTable(ui.table); if (raster) raster.dirty = true; } });
+    // The mechanism views take the duct's cover and the chair away so the parts show; every other view puts them back.
+    const go = (name) => { const v = VIEWS[name]; raster?.built.table.userData.setCover(!name.startsWith('tableMech')); raster?.built.table.userData.setChair(!/^table(Mech|Lift|Leg)/.test(name)); raster?.built.table.userData.setTop(name !== 'tableMech'); raster?.setView(P(...v.pos), P(...v.at), v.fov); };
     bar.replaceChildren(
-      el('label', { class: 'r-fold' }, 'Open', slider, 'Folded'),
-      ...['hero', 'heroSouth', 'foot', 'windows', 'mirror', 'box', 'flap'].map((n) => el('button', { type: 'button', onclick: () => go(n) }, VIEWS[n].label)),
+      el('label', { class: 'r-fold' }, 'Seat open', slider, 'Folded'),
+      el('label', { class: 'r-fold' }, 'Table closed', tableSlider, 'Open'),
+      ...['tableRoom', 'tableRoomOpen', 'tableClosed', 'tableOpen', 'tableSet', 'tableMech', 'tableLeg', 'tableLift', 'hero', 'heroSouth', 'foot', 'windows', 'mirror', 'box', 'flap'].map((n) => el('button', { type: 'button', onclick: () => go(n) }, VIEWS[n].label)),
       el('button', { type: 'button', onclick: () => raster?.setView(P(-2000, 7200, 5400), P(1450, 2700, 650), 40) }, 'From outside'),
       el('button', { type: 'button', onclick: startRefine }, 'Refine'),
     );

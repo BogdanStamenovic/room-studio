@@ -53,6 +53,17 @@ try {
   // Fold slider and variant switch must not throw.
   await page.fill('.r-fold input', '100');
   await page.waitForTimeout(1500);
+  // The table's slider, and its views, including the one that lifts the top off and the one that puts it back.
+  await page.fill('input[aria-label="Open the table"]', '100');
+  await page.waitForTimeout(1500);
+  for (const name of ['Mechanism, top lifted off', 'Room: table, bed and platform']) {
+    await page.click(`#r-views button:has-text("${name}")`);
+    await page.waitForTimeout(1500);
+    assert(await nonBlank(page, '#r3d') > 20, `table view looks blank: ${name}`);
+    await page.screenshot({ path: `${shots}/render-table-${name.startsWith('Mech') ? 'mech' : 'room'}.png` });
+  }
+  await page.fill('input[aria-label="Open the table"]', '0');
+  await page.fill('.r-fold input', '0');
   await page.click('#r-top button:has-text("Box south")');
   await page.waitForSelector('#r3d');
   await page.waitForTimeout(4000);
@@ -82,7 +93,7 @@ try {
   fs.mkdirSync(renders, { recursive: true });
   const jpg = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==', 'base64');
   fs.writeFileSync(path.join(renders, 'x.jpg'), jpg);
-  fs.writeFileSync(path.join(renders, 'manifest.json'), JSON.stringify({ stills: [{ file: 'x.jpg', label: 'Test still', variant: 'corner' }], panos: [] }));
+  fs.writeFileSync(path.join(renders, 'manifest.json'), JSON.stringify({ stills: [{ file: 'x.jpg', label: 'Test still', variant: 'corner' }, { file: 'x.jpg', label: 'Table still', group: 'table' }], panos: [] }));
   const noGl = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const p3 = await noGl.newPage();
   watch(p3);
@@ -93,6 +104,12 @@ try {
   await p3.waitForTimeout(500);
   await p3.goto(`${base}/render`);
   await p3.waitForFunction(() => document.getElementById('still').naturalWidth > 0, null, { timeout: 15000 });
+  // Stills sort into bed and seat, and table.
+  await p3.click('#r-top button:has-text("Table")');
+  assert(await p3.locator('#r-views button:has-text("Table still")').count() === 1, 'table still is not listed under Table');
+  assert(await p3.locator('#r-views button:has-text("Test still")').count() === 0, 'other stills show under Table');
+  await p3.click('#r-top button:has-text("Bed and seat")');
+  assert(await p3.locator('#r-views button:has-text("Test still")').count() === 1, 'bed and seat still is missing');
   await p3.click('#r-top button:has-text("Orbit")');
   await p3.waitForFunction(() => /not available/.test(document.getElementById('r-status').textContent), null, { timeout: 30000 });
   assert(await p3.locator('#still').isVisible(), 'stills must stay visible when WebGL is missing');

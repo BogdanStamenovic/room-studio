@@ -24,8 +24,8 @@ export const HINGE = { x: EAST - LEDGER.depth, z: SEAT_TOP };
 // Revision 6: load cables hang straight down from the ceiling, directly above the seat's outer edge, so the
 // space above the seat stays clear. They only hold it open. A vertical cable goes slack as the seat rises, so
 // it cannot fold the seat: folded, the cables are reeled up to the ceiling, and a separate slim line from high
-// on the wall lifts it. That line would cross the seat if it stayed attached while open, so it hooks on only
-// to fold. Reels, hook and winch are unresolved; what is drawn is their likely place and rough size. ESTIMATE.
+// on the wall lifts it, hauled by hand (see HAND_FOLD; motorising stays possible later). That line would cross
+// the seat if it stayed attached while open, so it hooks on only to fold. What is drawn is likely place and rough size. ESTIMATE.
 export const LIFT_LINE = { x: EAST - 24, z: 2510, diameter: 4 };
 export const REEL = { dia: 74, height: 46 };
 
@@ -120,4 +120,109 @@ export function foldedTop() {
 export function pianoPlace(variant) {
   const { y0, y1 } = VARIANTS[variant].piano;
   return { x: EAST - 305 / 2, y: (y0 + y1) / 2, rot: -90 };
+}
+
+// --- The expanding table. Every number below is a proposal, not his measurement. ---
+// Facts it answers to, from room.json: lower wall block ends at y 3779, wardrobe front at y 555, windows at
+// y 2379..3289 and 3314..4224 with the sill at 1030. Radiator numbers are ESTIMATE from a photo (room.mjs).
+// His height is 184 cm. ESTIMATE from standard body proportions: seated with a 470 seat, knee top about 590,
+// thigh top about 640, elbow about 740, eye about 1310.
+export const TABLE = {
+  x0: 170, x1: 970, // 800 deep. The 170 at the wall is the radiator's chimney, so the top never roofs it.
+  yN: 3769, // 10 south of the block's face, 50 south of the bed
+  len: 1400, travel: 1400, // length doubles. 1400 is what parks the moved top just south of window 2's 2379.
+  z: 760, thick: 30, apron: 40, // 760 not 740: 184 cm needs thigh room under the front beam, see BASE
+  moveMmPerS: 50, // ESTIMATE: 28 s end to end, slow enough to stop by letting go
+};
+TABLE.yS = TABLE.yN - TABLE.len;
+TABLE.apronZ = TABLE.z - TABLE.thick - TABLE.apron;
+
+// Fixed under-frame. Front beam is steel, 70 x 30: the 650 clearance under it is what 184 cm's thighs get.
+export const BASE = {
+  yS: 2425, yN: 3780, // posts 60 long at each end; the south 56 past the top's end leaves room for the folded leg
+  front: { x0: 860, x1: 930, z0: 650, z1: 680 },
+  rear: { x0: 175, x1: 205, z0: 640, z1: 680 },
+  track: { x0: 930, x1: 965, y0: 2375, y1: 3795, z0: 668, z1: 680 },
+  shield: { x0: 168, x1: 174, z0: 100, z1: 640 }, // white aluminium sheet between radiator and everything else
+};
+
+// Wall rail: a 20 mm profile rail on stand-offs, above the radiator (ESTIMATE top 700), with the belt on it.
+export const RAIL = { x0: 30, x1: 50, z0: 712, z1: 732, y0: 985, y1: 3775, trucks: [60, 1000] }; // trucks from the top's north end
+
+// Duct south of the radiator only: over the radiator the rail stays bare so the heat can rise past it.
+export const DUCT = { x1: 118, y0: 985, y1: 2420, z0: 734, z1: 840, chainFixedY: 1700, chainMovingY: 2400, chainR: 30 };
+
+// One leg, front south corner, swings in the x-z plane. Stored flat under the top's south end.
+export const LEG = { pivot: { x: 905, y: 2410, z: 672 }, length: 632, wheelR: 40, brace: { at: 200, z: 688, x0: 337, x1: 605 } };
+LEG.brace.length = Math.hypot(LEG.pivot.x - LEG.brace.x1, LEG.pivot.z - LEG.brace.at - LEG.brace.z);
+
+// Set: fixed rear tray with the tools, and a leaf that stands up as a modesty panel when stowed and folds
+// out flat when raised. Without the fold there is no knee room when the table is closed: a 700 deep tray
+// under the top leaves 184 cm's thighs nowhere to go.
+export const SET = {
+  x0: 210, hinge: 545, leaf: 350, thick: 25, y0: 2495, y1: 3705,
+  zUp: TABLE.z, // flush with the top once raised
+  toolMax: 230, // tallest thing on the rear tray when stowed
+};
+SET.x1 = SET.hinge + SET.leaf;
+SET.zDown = BASE.front.z1 - SET.leaf; // leaf stands to just under the beam's level, clear of the top's cross apron
+SET.stroke = SET.zUp - SET.zDown;
+export const LIFT = { columns: [2900, 3500], carriage: 190, x: 224 };
+export const CHAIR = { x: 1330, y: 3325, seat: 470, reach: 600 }; // ESTIMATE: a chair and someone in it take 600 from the table's edge
+
+// ESTIMATE: lying on its side. His tower's real size is unknown, so measure it before cutting anything.
+export const SERVER = { x0: 250, x1: 700, y0: 2495, y1: 2945, z0: 40, z1: 250 };
+export const MONITOR = { y: CHAIR.y, width: 620, x: 430, z0: 870, z1: 1240 };
+
+const smooth = (a, b, t) => { const u = Math.min(1, Math.max(0, (t - a) / (b - a))); return u * u * (3 - 2 * u); };
+
+/**
+ * The machine's order of motion. t is the single slider, 0 closed to 1 fully open. Phases never overlap: that
+ * is what the interlocks enforce on the real thing, and a test checks it here.
+ */
+export function tableState(t) {
+  const leg = smooth(0, 0.16, t); // down and latched first; the latch is what frees the bolt holding the top
+  const slide = smooth(0.19, 0.62, t);
+  const lift = smooth(0.66, 1, t); // only with the top all the way off
+  const leaf = smooth(0.8, 0.98, t); // folds out once high enough to swing clear of the server and the floor
+  return { leg, slide, lift, leaf, travel: slide * TABLE.travel, setZ: SET.zDown + lift * SET.stroke };
+}
+
+/** Where the chain's loop sits for a given position of the moving bracket: it travels at half speed. */
+export function chainLoopY(movingY) {
+  return (DUCT.chainFixedY + movingY) / 2 + TABLE.travel / 4;
+}
+
+/** Plain-number clearances, stated in the report and asserted in the test. */
+export function tableClearances(variant, room = { wardrobeFront: 555, bedSouth: BED.y0, doorArcX: EAST - 840 }) {
+  const v = VARIANTS[variant];
+  const front = TABLE.x1;
+  const pianoFront = EAST - 305;
+  return {
+    closedLength: TABLE.len,
+    openLength: TABLE.len + TABLE.travel,
+    toWardrobeOpen: TABLE.yS - TABLE.travel - room.wardrobeFront,
+    toWardrobeClosed: TABLE.yS - room.wardrobeFront,
+    toBed: room.bedSouth - TABLE.yN,
+    toPianoFront: pianoFront - front,
+    pianoBenchLeft: pianoFront - 600 - front,
+    pastChairToBench: pianoFront - 600 - front - CHAIR.reach,
+    pastChairToPianoFront: pianoFront - front - CHAIR.reach,
+    toBox: v.box.x0 - front,
+    toSeatEdge: FREE_EDGE_X - front, // full-height walking band: the seat's underside is at 1440
+    toDoorArc: room.doorArcX - front,
+    kneeDepth: front - (SET.hinge + SET.thick),
+    thighClearance: BASE.front.z0,
+    gapSetToTop: SET.y0 - (TABLE.yS - 0),
+  };
+}
+
+// Hand fold, his decision: the line runs from the eye on the seat's free edge, up to a block high on the wall,
+// along under the ceiling to a second block past the seat's south end, and down to a small self-braking hand
+// winch he can reach from the floor. ESTIMATE, all of it; a 2:1 purchase may be needed once the seat's mass is known.
+export const HAND_FOLD = { runZ: 2470, past: 120, winchZ: 1560 };
+
+export function handWinchAt(variant) {
+  const { y0 } = VARIANTS[variant].deck;
+  return { y: y0 - HAND_FOLD.past, z: HAND_FOLD.winchZ };
 }

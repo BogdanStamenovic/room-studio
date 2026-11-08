@@ -4,12 +4,13 @@ import { resolveRoom } from '../geometry.mjs';
 import { makeMaterials, makeSky } from './materials.mjs';
 import { buildPiano, buildRoom } from './room.mjs';
 import { buildBed, buildImage, buildPlatform } from './pieces.mjs';
+import { buildTable } from './table.mjs';
 import { pianoPlace } from './plan.mjs';
 
 /** Room coordinates in mm to world metres, Y up. */
 export const P = (x, y, z) => new THREE.Vector3(x / 1000, z / 1000, -y / 1000);
 
-export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, upholstery = 'vermilion', forPathTracer = false, lighting = 'day', M: shared } = {}) {
+export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, upholstery = 'vermilion', forPathTracer = false, lighting = 'day', table = 0, tableCover = true, tableChair = true, tableTop = true, M: shared } = {}) {
   const M = shared || makeMaterials({ upholstery });
   // White lacquer frame; oak disappeared into the oak floor when I tried it.
   M.bedRail = M.bedRail || M.white;
@@ -31,6 +32,12 @@ export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, 
   const image = buildImage(variant, M);
   if (image) pieces.add(image);
   platform.userData.setFold(fold);
+  const tableNode = buildTable(M);
+  pieces.add(tableNode);
+  tableNode.userData.setTable(table);
+  tableNode.userData.setCover(tableCover);
+  tableNode.userData.setChair(tableChair);
+  tableNode.userData.setTop(tableTop);
 
   // Dusk: shutters' worth of dim sky, no sun, the ceiling ring on. It is what the projector wall is for.
   const dusk = lighting === 'dusk';
@@ -62,7 +69,7 @@ export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, 
     }
   }
   root.updateMatrixWorld(true);
-  return { scene, root, room, platform, materials: M, sky, resolved };
+  return { scene, root, room, platform, table: tableNode, materials: M, sky, resolved };
 }
 
 /** Named viewpoints in room mm: position, target, vertical field of view. */
@@ -75,6 +82,15 @@ export const VIEWS = {
   mirror: { pos: [1150, 3760, 1450], at: [1250, 300, 1150], fov: 56, label: 'Wardrobe and mirror' },
   flap: { pos: [1500, 3050, 240], at: [1900, 3819, 110], fov: 34, label: 'The flap in the bed edge' },
   box: { pos: [1500, 2450, 780], at: [2404, 3819, 800], fov: 52, label: 'Box: robot door and holds' },
+  tableClosed: { pos: [1750, 1250, 1400], at: [520, 3050, 800], fov: 58, label: 'Table closed' },
+  tableMid: { pos: [1900, 1050, 1380], at: [430, 2650, 760], fov: 62, label: 'Table sliding' },
+  tableOpen: { pos: [1950, 1300, 1450], at: [430, 2250, 720], fov: 68, label: 'Table open, set up' },
+  tableSet: { pos: [1440, 3660, 1250], at: [400, 2960, 770], fov: 54, label: 'Soldering set' },
+  tableMech: { pos: [1560, 720, 1560], at: [430, 2150, 520], fov: 66, label: 'Mechanism, top lifted off' },
+  tableLeg: { pos: [1560, 690, 330], at: [640, 1420, 400], fov: 66, label: 'Leg, brace and rollers' },
+  tableLift: { pos: [1450, 2250, 1050], at: [330, 3100, 400], fov: 60, label: 'Lift, set stowed, server below' },
+  tableRoom: { pos: [2180, 720, 1650], at: [1150, 3500, 760], fov: 72, label: 'Room: table, bed and platform' },
+  tableRoomOpen: { pos: [2180, 720, 1650], at: [1000, 2800, 760], fov: 72, label: 'Room with the table open' },
 };
 
 export function setView(camera, name, overrides = {}) {
