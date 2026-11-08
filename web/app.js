@@ -433,7 +433,7 @@ function applyWorld() {
   const res = resolveRoom(d.room);
   const banner = $('banner');
   banner.hidden = !res.isPlaceholder || Boolean(state.study);
-  banner.textContent = 'Placeholder room: these are not your dimensions yet.';
+  banner.textContent = 'Yellow numbers are guesses until you measure those walls.';
 }
 async function refresh(force) {
   const { rev } = await api('GET', 'rev');

@@ -81,8 +81,13 @@ export function resolveRoom(room = {}) {
       shape = 'assumed-square';
       warnings.push('No diagonal yet, so the corners are assumed square and opposite walls are averaged.');
     } else {
-      corners = rectCorners(PLACEHOLDER.walls.ab, PLACEHOLDER.walls.bc);
-      shape = 'placeholder';
+      // Walls get measured one at a time, so each saved number must show up immediately.
+      const span = (x, y, guess) => {
+        const known = [num(x), num(y)].filter(Boolean);
+        return known.length ? known.reduce((a, b) => a + b, 0) / known.length : guess;
+      };
+      corners = rectCorners(span(walls.ab, walls.cd, PLACEHOLDER.walls.ab), span(walls.bc, walls.da, PLACEHOLDER.walls.bc));
+      shape = ['ab', 'bc', 'cd', 'da'].some((k) => num(walls[k])) ? 'partial' : 'placeholder';
     }
   }
 
@@ -100,6 +105,8 @@ export function resolveRoom(room = {}) {
       p,
       q,
       length: Math.hypot(q[0] - p[0], q[1] - p[1]),
+      // Until the shape is solved the drawn length can differ from what was typed; labels show the typed one.
+      shownLength: stored ?? Math.hypot(q[0] - p[0], q[1] - p[1]),
       measured: Boolean(stored) || shape === 'polygon',
       h0: cornerHeights[i] ?? fallback,
       h1: cornerHeights[(i + 1) % corners.length] ?? fallback,
@@ -115,7 +122,7 @@ export function resolveRoom(room = {}) {
     warnings,
     heightsKnown: known.length === corners.length,
     maxHeight: Math.max(fallback, ...known),
-    isPlaceholder: shape === 'placeholder',
+    isPlaceholder: shape === 'placeholder' || shape === 'partial',
   };
 }
 

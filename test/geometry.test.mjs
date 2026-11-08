@@ -36,6 +36,25 @@ test('walls and corners read by compass, with north at the top of the plan', () 
   assert.ok(ne[0] > nw[0] && se[0] > sw[0], 'east is +x');
 });
 
+test('a single measured wall shows up at once and only the rest stay guesses', () => {
+  const r = resolveRoom({ walls: { bc: 5019 } });
+  assert.equal(r.shape, 'partial');
+  assert.equal(r.isPlaceholder, true);
+  const east = r.edges.find((e) => e.label === 'East');
+  const north = r.edges.find((e) => e.label === 'North');
+  assert.equal(east.length, 5019);
+  assert.equal(east.measured, true);
+  assert.equal(east.shownLength, 5019);
+  assert.equal(north.measured, false);
+});
+
+test('opposite walls that disagree show what was typed, not the average', () => {
+  const r = resolveRoom({ walls: { bc: 5019, da: 5001 } });
+  assert.equal(r.edges.find((e) => e.label === 'East').shownLength, 5019);
+  assert.equal(r.edges.find((e) => e.label === 'West').shownLength, 5001);
+  assert.equal(r.edges.find((e) => e.label === 'East').length, 5010);
+});
+
 test('resolveRoom says when it is guessing', () => {
   assert.equal(resolveRoom({}).isPlaceholder, true);
   assert.equal(resolveRoom({ walls: { ab: 3000, bc: 2000, cd: 3000, da: 2000 } }).shape, 'assumed-square');

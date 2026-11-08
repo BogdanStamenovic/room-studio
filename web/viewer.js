@@ -224,7 +224,7 @@ export class Viewer {
     group.userData = { outward, mid };
     this.walls.push(group);
     this.world.add(group);
-    const text = e.measured ? `${e.label} ${Math.round(e.length)}` : `${e.label} about ${Math.round(e.length)}?`;
+    const text = e.measured ? `${e.label} ${Math.round(e.shownLength)}` : `${e.label} about ${Math.round(e.shownLength)}?`;
     const s = label(text, e.measured ? { size: 230 } : { size: 230, color: '#1c2925', bg: '#f5b700' });
     s.position.set(mid.x + outward.x * 260, mid.y + outward.y * 260, 40);
     this.world.add(s);
