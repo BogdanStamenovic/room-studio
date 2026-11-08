@@ -16,8 +16,10 @@ tree() { # the process and all its descendants
 in_call() {
   # Either signal is enough. Unreachable counts as a call: wrongly pausing costs a little time,
   # and wrongly rendering is what broke his call.
+  # Leases and voice legs mean someone is on the line. Not call_active or active_calls: both stay
+  # true long after a hang-up, while the call's conversation is open, which would freeze a job for hours.
   s=$(curl -s -m 2 "$STATUS") || return 0
-  case $s in *'"call_active":false'*) ;; *) return 0 ;; esac
+  case $s in *'"call_leases":{}'*) ;; *) return 0 ;; esac
   h=$(curl -s -m 2 "$CALLD") || return 0
   case $h in *'"voice_legs":0'*) return 1 ;; esac
   return 0
