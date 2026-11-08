@@ -47,6 +47,10 @@ try {
   await page.click('button:has-text("Add one")');
   const e = page.locator('.fixed-entry').first();
   await e.locator('[name=offset]').fill('500'); await e.locator('[name=width]').fill('900'); await e.locator('[name=bottom]').fill('0'); await e.locator('[name=height]').fill('2050');
+  assert(await page.locator('.fixed-entry label:has-text("From the west end")').count() === 1, 'north wall should measure from the west end');
+  await e.locator('[name=wall]').selectOption('cd');
+  assert(await page.locator('.fixed-entry label:has-text("From the east end")').count() === 1, 'hint should follow the wall');
+  await e.locator('[name=wall]').selectOption('ab');
   await page.click('button:has-text("Save measurements")');
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${shots}/05-measure.png` });

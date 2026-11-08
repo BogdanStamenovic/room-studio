@@ -50,7 +50,7 @@ room-studio study list | study rm ID
 room-studio item put FILE         # agent places items: "placed": {"x","y","z","rot"}
 ```
 
-A study, in millimetres, with x and y on the floor and z up:
+A study, in millimetres, with x and y on the floor (+y is north) and z up:
 
 ```json
 {

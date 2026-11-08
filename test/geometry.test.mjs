@@ -27,6 +27,15 @@ test('impossible measurements return an error instead of a shape', () => {
   assert.match(solveQuad({ ab: 1000, bc: 1000, cd: 1000, da: 1000, ac: 5000 }).error, /triangle/);
 });
 
+test('walls and corners read by compass, with north at the top of the plan', () => {
+  const r = resolveRoom({ walls: { ab: 3000, bc: 2000, cd: 3000, da: 2000 }, diagonals: { ac: 3606 } });
+  assert.deepEqual(r.edges.map((e) => e.label), ['North', 'East', 'South', 'West']);
+  assert.deepEqual(r.cornerLabels, ['NW', 'NE', 'SE', 'SW']);
+  const [nw, ne, se, sw] = r.corners;
+  assert.ok(nw[1] > sw[1] && ne[1] > se[1], 'north is +y');
+  assert.ok(ne[0] > nw[0] && se[0] > sw[0], 'east is +x');
+});
+
 test('resolveRoom says when it is guessing', () => {
   assert.equal(resolveRoom({}).isPlaceholder, true);
   assert.equal(resolveRoom({ walls: { ab: 3000, bc: 2000, cd: 3000, da: 2000 } }).shape, 'assumed-square');

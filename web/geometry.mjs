@@ -1,12 +1,16 @@
 // Shared by the browser and the server. All lengths are millimetres.
-// Plan convention: stand in the room facing wall A-B, A is its left end, and the
-// letters continue clockwise seen from above. +y points the way you are facing.
+// Plan convention: +y is north. Corners run clockwise from above: a=NW, b=NE, c=SE, d=SW.
+// Stored keys stay ab/bc/cd/da so saved data never needs migrating; people only see compass names.
 
 export const PLACEHOLDER = {
   walls: { ab: 4000, bc: 3500, cd: 4000, da: 3500 },
   height: 2600,
 };
 export const CHECK_TOLERANCE_MM = 15;
+export const WALL_NAMES = { ab: 'North', bc: 'East', cd: 'South', da: 'West' };
+export const CORNER_NAMES = { a: 'NW', b: 'NE', c: 'SE', d: 'SW' };
+// Offsets run clockwise along a wall, so each wall measures from a different end.
+export const WALL_START = { ab: 'west end', bc: 'north end', cd: 'east end', da: 'south end' };
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
 
@@ -26,13 +30,13 @@ function triangleApex(p, q, dp, dq) {
 
 /** Four wall lengths and a diagonal fix the shape. The other diagonal then checks it. */
 export function solveQuad({ ab, bc, cd, da, ac, bd }) {
-  if (![ab, bc, cd, da, ac].every((v) => num(v))) return { error: 'needs four walls and diagonal A-C' };
+  if (![ab, bc, cd, da, ac].every((v) => num(v))) return { error: 'needs four walls and the NW to SE diagonal' };
   const A = [0, 0];
   const B = [ab, 0];
   const C = triangleApex(A, B, ac, bc);
-  if (!C) return { error: 'A-B, B-C and A-C cannot form a triangle; one of them is mis-measured' };
+  if (!C) return { error: 'The north wall, east wall and NW to SE diagonal cannot form a triangle; one of them is mis-measured.' };
   const D = triangleApex(A, C, da, cd);
-  if (!D) return { error: 'C-D, D-A and A-C cannot form a triangle; one of them is mis-measured' };
+  if (!D) return { error: 'The south wall, west wall and NW to SE diagonal cannot form a triangle; one of them is mis-measured.' };
   const minY = Math.min(A[1], B[1], C[1], D[1]);
   const corners = [A, B, C, D].map(([x, y]) => [x, y - minY]);
   const predictedBd = Math.hypot(B[0] - D[0], B[1] - D[1]);
@@ -92,6 +96,7 @@ export function resolveRoom(room = {}) {
     const stored = num(walls[name]);
     return {
       name,
+      label: WALL_NAMES[name] || name.toUpperCase(),
       p,
       q,
       length: Math.hypot(q[0] - p[0], q[1] - p[1]),
@@ -103,6 +108,7 @@ export function resolveRoom(room = {}) {
   return {
     corners,
     letters,
+    cornerLabels: letters.map((l) => (corners.length === 4 ? CORNER_NAMES[l] : l.toUpperCase())),
     edges,
     shape,
     check,

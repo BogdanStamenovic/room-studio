@@ -112,7 +112,7 @@ switch (cmd) {
   case 'status': {
     const s = new Store();
     const res = resolveRoom(s.room());
-    console.log(`data: ${s.dir}\nroom: ${res.shape}, ${res.edges.map((e) => `${e.name}=${Math.round(e.length)}`).join(' ')}`);
+    console.log(`data: ${s.dir}\nroom: ${res.shape}, ${res.edges.map((e) => `${e.label}=${Math.round(e.length)}`).join(' ')}`);
     if (res.check?.errorMm != null) console.log(`check: second diagonal off by ${res.check.errorMm.toFixed(1)} mm`);
     console.log(`photos: ${s.photos().length}  items: ${s.items().length}  studies: ${s.studies().length}  drawings: ${s.drawings().length}`);
     break;

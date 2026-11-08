@@ -1,7 +1,7 @@
 import { Viewer } from './viewer.js';
 import { openDraw } from './draw.js';
 import { h, markdown } from './ui.js';
-import { resolveRoom, CHECK_TOLERANCE_MM, PLACEHOLDER } from './geometry.mjs';
+import { resolveRoom, CHECK_TOLERANCE_MM, PLACEHOLDER, WALL_NAMES, CORNER_NAMES, WALL_START } from './geometry.mjs';
 
 const $ = (id) => document.getElementById(id);
 // replaceChildren would print null and arrays as text.
@@ -229,20 +229,22 @@ function planDiagram() {
     if (text) el.textContent = text;
     return el;
   };
-  const root = svg('svg', { viewBox: '0 0 190 130', class: 'plan-svg', role: 'img', 'aria-label': 'Corners A, B, C and D clockwise, with diagonals A-C and B-D' });
-  root.append(svg('rect', { x: 28, y: 22, width: 134, height: 86, fill: 'none', stroke: '#1c2925', 'stroke-width': 2.5 }));
-  root.append(svg('path', { d: 'M28 22 L162 108 M162 22 L28 108', stroke: '#4c5d57', 'stroke-dasharray': '4 4' }));
-  for (const [t, x, y] of [['A', 12, 20], ['B', 170, 20], ['C', 170, 122], ['D', 12, 122]]) root.append(svg('text', { x, y, 'font-size': 17, 'font-weight': 600, fill: '#1c2925' }, t));
+  const root = svg('svg', { viewBox: '0 0 220 150', class: 'plan-svg', role: 'img', 'aria-label': 'Floor plan with north at the top, corners NW, NE, SE and SW, and the two diagonals' });
+  root.append(svg('rect', { x: 42, y: 34, width: 134, height: 86, fill: 'none', stroke: '#1c2925', 'stroke-width': 2.5 }));
+  root.append(svg('path', { d: 'M42 34 L176 120 M176 34 L42 120', stroke: '#4c5d57', 'stroke-dasharray': '4 4' }));
+  for (const [t, x, y] of [['North', 92, 16], ['NW', 12, 34], ['NE', 182, 34], ['SE', 182, 134], ['SW', 12, 134]]) root.append(svg('text', { x, y, 'font-size': 17, 'font-weight': 600, fill: '#1c2925' }, t));
   return root;
 }
 function fixedEntry(f) {
   const e = h('div', { class: 'fixed-entry', 'data-fixed': f.id || '' });
+  const startText = (wall) => `From the ${WALL_START[wall] || 'first corner'}, mm`;
+  const startLabel = numField(startText(f.wall), f.offset, 'offset');
   e.append(
     h('div', { class: 'grid2' },
       h('label', {}, 'What', h('select', { name: 'kind' }, FIXED_KINDS.map((k) => h('option', { value: k, selected: k === f.kind }, k)))),
-      h('label', {}, 'Wall', h('select', { name: 'wall' }, ['ab', 'bc', 'cd', 'da'].map((w) => h('option', { value: w, selected: w === f.wall }, w.toUpperCase()))))),
+      h('label', {}, 'Wall', h('select', { name: 'wall', onchange: (ev) => { startLabel.firstChild.textContent = startText(ev.target.value); } }, Object.entries(WALL_NAMES).map(([w, name]) => h('option', { value: w, selected: w === f.wall }, name))))),
     h('div', { class: 'grid2' },
-      numField('From first corner, mm', f.offset, 'offset'),
+      startLabel,
       numField('Width, mm', f.width, 'width'),
       numField('Height above floor, mm', f.bottom, 'bottom'),
       numField('Its height, mm', f.height, 'height'),
@@ -269,22 +271,22 @@ function renderMeasure(sheet) {
     });
     await refresh(true);
     const c = resolveRoom(state.data.room);
-    toast(c.check?.errorMm != null ? `Measurements saved. ${c.check.ok ? 'They agree' : 'They disagree'}: B to D is ${Math.round(c.check.errorMm)} mm off.` : 'Measurements saved');
+    toast(c.check?.errorMm != null ? `Measurements saved. ${c.check.ok ? 'They agree' : 'They disagree'}: NE to SW is ${Math.round(c.check.errorMm)} mm off.` : 'Measurements saved');
   }) },
     h('h3', {}, 'Walls'),
-    h('p', {}, 'Stand in the middle facing any wall. Its left corner is A, its right corner is B, then C and D keep going to your right. All numbers in millimetres.'),
+    h('p', {}, 'Use your phone compass. The wall closest to north is the North wall, and the others follow. All numbers in millimetres.'),
     planDiagram(),
     h('div', { class: 'grid2' },
-      numField('A to B', walls.ab, 'ab', PLACEHOLDER.walls.ab), numField('B to C', walls.bc, 'bc', PLACEHOLDER.walls.bc),
-      numField('C to D', walls.cd, 'cd', PLACEHOLDER.walls.cd), numField('D to A', walls.da, 'da', PLACEHOLDER.walls.da)),
+      numField('North wall', walls.ab, 'ab', PLACEHOLDER.walls.ab), numField('East wall', walls.bc, 'bc', PLACEHOLDER.walls.bc),
+      numField('South wall', walls.cd, 'cd', PLACEHOLDER.walls.cd), numField('West wall', walls.da, 'da', PLACEHOLDER.walls.da)),
     h('h3', {}, 'Diagonals'),
     h('p', {}, 'These fix the true shape, because no room is exactly square. The second one checks the others.'),
-    h('div', { class: 'grid2' }, numField('A to C', diag.ac, 'ac'), numField('B to D', diag.bd, 'bd')),
+    h('div', { class: 'grid2' }, numField('NW to SE', diag.ac, 'ac'), numField('NE to SW', diag.bd, 'bd')),
     checkBox(res),
     h('h3', {}, 'Ceiling height at each corner'),
-    h('div', { class: 'grid2' }, ['a', 'b', 'c', 'd'].map((k) => numField(k.toUpperCase(), hs[k], `h-${k}`, PLACEHOLDER.height))),
+    h('div', { class: 'grid2' }, ['a', 'b', 'c', 'd'].map((k) => numField(CORNER_NAMES[k], hs[k], `h-${k}`, PLACEHOLDER.height))),
     h('h3', {}, 'Fixed to the walls'),
-    h('p', {}, 'Doors, windows, sockets, radiators, pipes, beams. "From first corner" means from A on wall AB, from B on wall BC, and so on.'),
+    h('p', {}, 'Doors, windows, sockets, radiators, pipes, beams. Each one shows which end of the wall to measure from.'),
     fixedBox,
     h('button', { type: 'button', class: 'btn line small', onclick: () => fixedBox.append(fixedEntry({ wall: 'ab', kind: 'door' })) }, 'Add one'),
     h('h3', {}, 'Anything else'),
@@ -297,10 +299,10 @@ function checkBox(res) {
   if (res.warnings.length) return h('p', { class: 'check bad' }, res.warnings.join(' '));
   const c = res.check;
   if (!c) return null;
-  if (c.errorMm === null) return h('p', { class: 'check' }, `Add B to D to check the numbers. They predict ${Math.round(c.predicted)} mm.`);
+  if (c.errorMm === null) return h('p', { class: 'check' }, `Add NE to SW to check the numbers. They predict ${Math.round(c.predicted)} mm.`);
   return c.ok
-    ? h('p', { class: 'check' }, `Numbers agree: B to D is ${Math.round(c.errorMm)} mm from what the others predict.`)
-    : h('p', { class: 'check bad' }, `B to D is ${Math.round(c.errorMm)} mm from the predicted ${Math.round(c.predicted)} mm, over the ${CHECK_TOLERANCE_MM} mm limit. Measure again; a skirting board or a tilted laser is the usual cause.`);
+    ? h('p', { class: 'check' }, `Numbers agree: NE to SW is ${Math.round(c.errorMm)} mm from what the others predict.`)
+    : h('p', { class: 'check bad' }, `NE to SW is ${Math.round(c.errorMm)} mm from the predicted ${Math.round(c.predicted)} mm, over the ${CHECK_TOLERANCE_MM} mm limit. Measure again; a skirting board or a tilted laser is the usual cause.`);
 }
 
 /* --- photos --- */
@@ -330,7 +332,7 @@ function renderPhotos(sheet) {
       return;
     }
   }
-  const label = h('input', { placeholder: 'Wall AB with the desk', 'aria-label': 'What the photos show' });
+  const label = h('input', { placeholder: 'North wall with the desk', 'aria-label': 'What the photos show' });
   const file = h('input', { type: 'file', accept: 'image/*', multiple: true, 'aria-label': 'Choose photos', onchange: guarded(async (e) => {
     const files = [...e.target.files];
     let done = 0;

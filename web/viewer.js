@@ -198,7 +198,7 @@ export class Viewer {
     const cx = room.corners.reduce((s, p) => s + p[0], 0) / n;
     const cy = room.corners.reduce((s, p) => s + p[1], 0) / n;
     room.corners.forEach(([x, y], i) => {
-      const s = label(room.letters[i].toUpperCase(), { size: 240, color: '#1c2925', bg: '#eef3ea' });
+      const s = label(room.cornerLabels[i], { size: 240, color: '#1c2925', bg: '#eef3ea' });
       const dx = x - cx; const dy = y - cy; const d = Math.hypot(dx, dy) || 1;
       s.position.set(x + (dx / d) * 280, y + (dy / d) * 280, 30);
       this.world.add(s);
@@ -224,7 +224,7 @@ export class Viewer {
     group.userData = { outward, mid };
     this.walls.push(group);
     this.world.add(group);
-    const text = e.measured ? `${e.name.toUpperCase()} ${Math.round(e.length)}` : `${e.name.toUpperCase()} about ${Math.round(e.length)}?`;
+    const text = e.measured ? `${e.label} ${Math.round(e.length)}` : `${e.label} about ${Math.round(e.length)}?`;
     const s = label(text, e.measured ? { size: 230 } : { size: 230, color: '#1c2925', bg: '#f5b700' });
     s.position.set(mid.x + outward.x * 260, mid.y + outward.y * 260, 40);
     this.world.add(s);
