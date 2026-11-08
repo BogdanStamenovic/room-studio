@@ -104,7 +104,7 @@ Choices that may look odd:
 - **Rail bare over the radiator, duct only south of it.** A cover over the radiator would stop the heat rising.
 - **Stills first, not live path tracing.** See the numbers under Limitations: a phone cannot do it, and even an RTX 4060 needs minutes.
 - **Design B's posts are not where the first study had them.** The low bed reaches the north wall and the table reaches the bed, so three study posts stood inside the mattress. The deck's north edge rests on a wall angle instead, which means it is not fully freestanding.
-- **Design B's piano faces west, at the arm's edge.** Against the wall a seated player's head would be 140 mm into the 1300 deck (estimate of 96 cm sitting height on a 480 bench).
+- **Design B's piano faces west, at the arm's edge.** Against the wall a seated player's head would be 110 mm into the 1300 deck (estimate of 96 cm sitting height on a 450 bench).
 - **`RANDOM_TYPE` is forced to 0 in `web/hifi/pt.mjs`.** three-gpu-pathtracer 0.0.24's default sampler left a fixed per-pixel speckle on three 0.180: noise on a flat wall measured 78.0, 73.9 and 74.8 at 25, 100 and 400 samples. With plain PCG random it is 38.0, 20.4 and 10.5, halving per four times the samples as it should.
 - **Three.js stays at 0.180, the path tracer at 0.0.24.** Newer path tracer releases need three 0.185 or later, which would touch the block viewer.
 - **Sky light comes through area lights in the window holes.** Nearly every sky ray from inside a room hits a wall. The lighting map holds only the sun; camera rays still see the painted sky.

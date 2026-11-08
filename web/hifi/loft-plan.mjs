@@ -12,8 +12,11 @@ export const FAN = { x0: 1068, x1: 1598, y0: 2245, y1: 2775, bottom: 2365 }; // 
 export const DROP_X = 457; // ceiling drop's room-side edge
 
 // ESTIMATE from standard proportions: seated height 96 cm at 184 cm tall. He has not measured it.
-export const PERSON = { height: 1840, sitting: 960, benchSeat: 480, headFromKeys: 420, headR: 100 };
+export const PERSON = { height: 1840, sitting: 960, benchSeat: 450, headFromKeys: 420, headR: 100 };
 
+// Joined by bolts because he may not weld. Welded instead: the plates, knees and most bolt heads go, the joints get
+// cleaner and stiffer, and sway ties may matter less. But the frame must still come through an 840 door, so it needs
+// site welds over parquet or bolted splices anyway, and the black finish has to go on after welding. Heights do not change.
 export const STEEL = {
   post: 60, // 60 x 60 x 3 square tube, ESTIMATE
   beamDepth: 80, // 80 x 40 x 3 rectangular tube, strong axis up, ESTIMATE
@@ -65,18 +68,18 @@ export const WALL_TIES = [{ y: 3785, side: -1, z: 1180 }, { y: 4989, side: -1, z
 // PROPOSED, for someone asleep; he said he does not worry about falling from a seat, but sleeping is different.
 // Top 200 above the mattress. Secondary sources give EN 747, a bunk-bed standard written for children, as at least 160;
 // the standard itself was not read. The two gaps are wider than its 75, so this stops an adult rolling, not a child.
-// West end and the open south side. Lounge side stays open: rolling that way lands on the lounge.
-export const GUARD = { top: UPPER.top + 200, mid: UPPER.top + 90, section: 30, xEnd: ARM.x0, postsSouth: [SOUTH_BEAM.x0 + 15, 1207, ARM.x0], postsWest: [3785, 4400, 4990] };
+// West end and the open south side, running on past its last post to the arm. Posts keep off the joints' plates. Lounge side stays open: rolling that way lands on the lounge.
+export const GUARD = { top: UPPER.top + 200, mid: UPPER.top + 90, section: 30, xEnd: ARM.x0, postsSouth: [SOUTH_BEAM.x0 + 15, 1290, 1505], postsWest: [3785, 4400, 4990] };
 
 // Ladder on the arm's south face, using the door-end post as one stringer, so it stands as far from the door as it can.
 // The rungs and the second stringer stand north of the door's reach everywhere. Stringers run on above the deck as handles.
 export const LADDER = { x0: 1767, x1: 2187, y0: 1550, y1: 1590, rungs: [260, 520, 780, 1040, 1300], rungDia: 30, stringer: 40, handleTop: 1930 };
 
 // CHANGE: the piano stands back to the east, keys west, at the arm's edge rather than against the wall. Against the
-// wall the player's head is 305 + 420 in, under a 1300 deck: 140 mm of skull into steel. Here the head is in open air.
+// wall the player's head is 305 + 420 in, under a 1300 deck: 110 mm of skull into steel. Here the head is in open air.
 export const PIANO = { w: 1350, d: 305, h: 775, x0: 1725, y0: 1675 };
 PIANO.x1 = PIANO.x0 + PIANO.d; PIANO.y1 = PIANO.y0 + PIANO.w;
-export const BENCH = { w: 600, d: 300, h: 480, tuckX0: 1705, useX0: PIANO.x0 - PERSON.headFromKeys - 175, y: (PIANO.y0 + PIANO.y1) / 2 };
+export const BENCH = { w: 600, d: 300, h: PERSON.benchSeat, tuckX0: 1705, useX0: PIANO.x0 - PERSON.headFromKeys - 175, y: (PIANO.y0 + PIANO.y1) / 2 };
 
 // The robot's home, which the corner box used to be: behind the piano, under the arm. Wider than the corner box's 48 cm
 // inside, so the full 50 cm robot fits. Door on the north face, way out past the piano's north end.

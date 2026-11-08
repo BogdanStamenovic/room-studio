@@ -103,7 +103,7 @@ export const VIEWS = {
   loftJoint: { pos: [1420, 3250, 930], at: [1045, 3755, 1235], fov: 36, label: 'Joint: post, beam, plates' },
   loftFoot: { pos: [1380, 3240, 470], at: [1050, 3785, 70], fov: 38, label: 'Foot of a post' },
   loftPiano: { pos: [1250, 690, 1080], at: [1560, 2480, 1040], fov: 58, label: 'Piano at the edge of the arm' },
-  loftRobot: { pos: [2340, 3700, 560], at: [2320, 3000, 250], fov: 64, label: 'Robot home behind the piano' },
+  loftRobot: { pos: [2300, 3735, 640], at: [2240, 3000, 240], fov: 74, label: 'Robot home behind the piano' },
   loftProjector: { pos: [430, 4400, 760], at: [2667, 4400, 930], fov: 62, label: 'Picture at the foot of the bed' },
   loftLadder: { pos: [1120, 880, 1300], at: [2150, 1620, 1050], fov: 62, label: 'Ladder and door' },
 };

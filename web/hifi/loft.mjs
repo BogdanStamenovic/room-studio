@@ -306,13 +306,13 @@ function figure({ thigh = 0, shin = 0, hands = 'rest', lift = 0 }) {
 
 /** Who sits where. x, y are under the hips, seat the surface they sit on, yaw the way they face. */
 export const PEOPLE = {
-  loungeBack: { at: [2400, 2500], seat: T + ARM.cushion, yaw: 180, thigh: 26, shin: 62 },
+  loungeBack: { at: [2400, 2500], seat: T + ARM.cushion, yaw: 180, thigh: 45, shin: 20 },
   loungeEdge: { at: [2195, 3000], seat: T + ARM.cushion, yaw: 180, thigh: 0, shin: 8 },
   loungeEdge2: { at: [2215, 1980], seat: T + ARM.cushion, yaw: 195, thigh: 0, shin: 14 },
-  upperBed: { at: [2240, 4470], seat: UPPER.top, yaw: 180, thigh: 18, shin: 72 },
-  lowPillow: { at: [470, 4470], seat: 320, yaw: 0, thigh: 18, shin: 72 },
-  lowMiddle: { at: [1410, 4180], seat: 320, yaw: 0, thigh: 18, shin: 72 },
-  piano: { at: [PIANO.x0 - PERSON.headFromKeys, BENCH.y], seat: BENCH.h, yaw: 0, thigh: 2, shin: 4, hands: 'keys' },
+  upperBed: { at: [2240, 4470], seat: UPPER.top, yaw: 180, thigh: 3, shin: 78 },
+  lowPillow: { at: [470, 4470], seat: 320, yaw: 0, thigh: 3, shin: 78 },
+  lowMiddle: { at: [1410, 4180], seat: 320, yaw: 0, thigh: 3, shin: 78 },
+  piano: { at: [PIANO.x0 - PERSON.headFromKeys, BENCH.y], seat: BENCH.h, yaw: 0, thigh: -6, shin: 4, hands: 'keys' },
   standing: { at: [1330, 2050], seat: 0, yaw: 270, thigh: -90, shin: 0, lift: PERSON.height - PERSON.sitting },
 };
 

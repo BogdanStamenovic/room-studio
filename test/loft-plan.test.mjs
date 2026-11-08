@@ -104,7 +104,7 @@ test('piano stays clear of the frame, and the player\'s head is out in open air'
   assert.equal(PIANO.d, 305);
   assert.ok(PIANO.h < DECK.underside);
   assert.ok(c.pianoHeadToDeckEdge >= 150, `head to deck edge ${c.pianoHeadToDeckEdge}`);
-  assert.equal(c.pianoIfAgainstWall, -140); // why it moved
+  assert.equal(c.pianoIfAgainstWall, -110); // why it moved
   for (const p of POSTS) assert.ok(!hit(footprint(p), { x0: PIANO.x0, x1: PIANO.x1, y0: PIANO.y0, y1: PIANO.y1 }), `${p.id} stands in the piano`);
   assert.ok(BENCH.tuckX0 + BENCH.d <= PIANO.x1, 'the bench tucks between the cheeks');
   assert.ok(BENCH.w <= PIANO.w - 84);
@@ -141,6 +141,20 @@ test('the guard rail is above the mattress by at least the 160 quoted for bunk b
   assert.ok(GUARD.mid > UPPER.top && GUARD.mid < GUARD.top);
   assert.equal(GUARD.xEnd, ARM.x0);
   assert.ok(GUARD.top < CEILING - PERSON.sitting + 200);
+});
+
+test('guard plates and joint plates do not sit on the same stretch of beam', () => {
+  for (const x of GUARD.postsSouth) {
+    for (const p of POSTS.slice(0, 3)) {
+      assert.ok(x + 30 <= p.x - 190 || x - 30 >= p.x + 190, `guard post at ${x} meets ${p.id}'s plate`); // 190: a gusset's half-width with a knee
+    }
+    assert.ok(x + 30 <= ARM.x0, 'and none on the arm beam');
+  }
+});
+
+test('the player\'s knee fits under the key bed', () => {
+  const kneeTop = BENCH.h + 105 - 470 * Math.sin((6 * Math.PI) / 180) + 52; // ESTIMATE of a 184 cm thigh, as drawn in loft.mjs
+  assert.ok(kneeTop < PIANO.h - 200, `knee top ${kneeTop}`);
 });
 
 test('the fan is outside the arm', () => {
