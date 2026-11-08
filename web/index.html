@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Room Studio</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
+<script type="importmap">__IMPORT_MAP__</script>
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<div id="app">
+  <nav id="rail" aria-label="Sections"></nav>
+  <section id="sheet" hidden></section>
+  <main id="stage">
+    <canvas id="model" aria-label="3D model of the room"></canvas>
+    <div id="viewbar" role="group" aria-label="Camera view"></div>
+    <p id="banner" hidden></p>
+    <div id="player" hidden></div>
+    <button id="draw-btn" type="button">Draw</button>
+  </main>
+</div>
+<div id="draw" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

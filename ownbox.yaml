@@ -1,0 +1,20 @@
+schema: 1
+name: room-studio
+description: Private site for designing a room and its furniture with an agent, using a 3D model, drawing and animated block studies
+homepage: https://github.com/BogdanStamenovic/room-studio
+tags: [web, 3d, furniture, agent, node]
+install:
+  platforms: [linux]
+  setup:
+    linux:
+      - npm ci --omit=dev
+      - node bin/room-studio.mjs install-service
+  update:
+    linux:
+      - npm ci --omit=dev
+      - node bin/room-studio.mjs update-service
+  remove:
+    linux:
+      - node bin/room-studio.mjs remove-service
+command:
+  linux: bin/room-studio.mjs
