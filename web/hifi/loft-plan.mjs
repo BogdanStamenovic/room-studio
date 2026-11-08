@@ -63,7 +63,7 @@ export const LEDGER_N = { x0: WEST_BEAM.x0, x1: 2607, y: 5019, leg: 68, thick: 8
 
 // CHANGE: small angles tie the three east posts back to the wall. They carry no weight, only stop sway: six bolted
 // posts with no diagonals would rack, and diagonals would cross the low bed or the walking band. ESTIMATE.
-export const WALL_TIES = [{ y: 3785, side: -1, z: 1180 }, { y: 4989, side: -1, z: 1180 }, { y: 1620, side: 1, z: 1180 }];
+export const WALL_TIES = [{ y: 3785, side: -1, z: 1180 }, { y: 4989, side: -1, z: 1255 }, { y: 1620, side: 1, z: 1180 }];
 
 // PROPOSED, for someone asleep; he said he does not worry about falling from a seat, but sleeping is different.
 // Top 200 above the mattress. Secondary sources give EN 747, a bunk-bed standard written for children, as at least 160;
@@ -88,7 +88,7 @@ export const ROBOT = { w: 500, d: 500, h: 500 };
 
 // Projector: now on the east wall at the foot of the low bed, under the deck, from the bare wall the box used to cover.
 // ESTIMATE: his model and its throw are unknown. The projector hangs from the deck's middle bearer.
-export const IMAGE = { y0: 3860, y1: 4940, z0: 620 };
+export const IMAGE = { y0: 3860, y1: 4940, z0: 580 };
 IMAGE.z1 = IMAGE.z0 + ((IMAGE.y1 - IMAGE.y0) * 9) / 16;
 export const PROJECTOR = { x0: 880, x1: 1180, y: 4417, w: 250, z0: 1225, z1: 1320 };
 

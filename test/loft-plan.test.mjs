@@ -128,6 +128,7 @@ test('projector picture on the bare east wall, clear of posts, deck and the duve
   assert.ok(IMAGE.y0 >= POSTS[2].y + 30);
   assert.ok(IMAGE.y1 <= POSTS[3].y - 30);
   assert.ok(IMAGE.z1 < DECK.underside);
+  for (const t of WALL_TIES) if (t.y + t.side * 102 < IMAGE.y1 && t.y > IMAGE.y0) assert.ok(t.z - 45 >= IMAGE.z1, 'a wall tie sits in the picture');
   assert.ok(IMAGE.z0 > BED.mattressTop + 100);
   assert.ok(c.throwRatio > 1.0 && c.throwRatio < 2.2, 'a common throw, ESTIMATE until his model is known');
   // Nothing of the frame between a head on the pillow and the picture.
