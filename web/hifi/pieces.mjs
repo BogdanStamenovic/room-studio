@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { cushion, extrude, fillet, hold, mergeGeometries, pebble, roundRect, slab, softPad } from './forms.mjs';
-import { BED, BOX_TOP, CABLE_DIAMETER, CEILING, CUSHION, DECK_EDGE, DECK_THICK, EAST, HINGE, LEDGER, PULLEY_X, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt } from './plan.mjs';
+import { BED, BOX_TOP, CABLE_DIAMETER, CABLE_X, CEILING, CUSHION, CUSHION_EDGE_INSET, DECK_EDGE, DECK_THICK, EAST, HINGE, LEDGER, LIFT_LINE, REEL, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt, liftEyeAt } from './plan.mjs';
 
 function mesh(geo, mat) {
   const m = new THREE.Mesh(geo, mat);
@@ -26,9 +26,9 @@ function buildSeat(variant, M) {
   profile.push([e / 2 + 16, -e - 0.5], [80, -e - (t - e) * 0.42], [150, -e - (t - e) * 0.8], [230, -t]);
   const deck = mesh(pebble(outline, profile, { along: 'y' }), M.oak);
 
-  // Seat pad, following the outline 30 in from the edge (study: 840 x 1290 on 900 x 1350).
+  // Seat pad, following the outline 30 in at the ends and clear of the cable fittings on the free edge.
   const padLine = fillet(pts.map(([x, y, r], i) => {
-    const dx = i < 2 ? -8 : i === 3 ? 30 : 30; const dy = i === 0 || i === 4 ? 30 : i === 1 || i === 2 ? -30 : 0;
+    const dx = i < 2 ? -8 : CUSHION_EDGE_INSET; const dy = i === 0 || i === 4 ? 30 : i === 1 || i === 2 ? -30 : 0;
     return [x + dx, y + dy, Math.max(0, r - 24)];
   }), 18).map((p) => new THREE.Vector2(p.x - HINGE.x, p.y));
   const pad = mesh(softPad(padLine, 1, CUSHION, { edgeR: 26, crown: 7, seed: 3 }), M.fabric);
@@ -36,13 +36,17 @@ function buildSeat(variant, M) {
   const seat = new THREE.Group();
   seat.add(deck, pad);
 
-  // Cable fittings set into the free edge.
+  // Cable fittings set into the free edge, outside the pad.
   for (const y of cablePoints(variant)) {
-    const f = fittingAt(0);
-    const stud = new THREE.CylinderGeometry(17, 21, 12, 24); stud.rotateX(Math.PI / 2);
-    stud.translate(f.x - HINGE.x, y, 4);
+    const stud = new THREE.CylinderGeometry(15, 19, 12, 24); stud.rotateX(Math.PI / 2);
+    stud.translate(CABLE_X - HINGE.x, y, 4);
     seat.add(mesh(stud, M.steel));
   }
+  // The eye the lift line hooks into to fold, on the free edge at mid length.
+  const eye = new THREE.TorusGeometry(11, 2.6, 8, 20); eye.rotateY(Math.PI / 2);
+  const mid = liftEyeAt(variant, 0);
+  eye.translate(mid.x - HINGE.x, mid.y, 13);
+  seat.add(mesh(eye, M.steel));
   return seat;
 }
 
@@ -129,24 +133,30 @@ export function buildPlatform(variant, M) {
   pivot.add(buildSeat(variant, M));
   root.add(pivot);
 
-  // Cables: each is one cylinder rescaled when the angle changes, so the fold slider stays cheap.
+  // Load cables: straight down from a ceiling reel to the outer edge. Rescaled, not rebuilt, so the fold slider stays cheap.
+  const reelBottom = CEILING - REEL.height;
   const cables = cablePoints(variant).map((y) => {
-    const c = mesh(new THREE.CylinderGeometry(CABLE_DIAMETER / 2, CABLE_DIAMETER / 2, 1, 12), M.steel);
-    c.userData.y = y;
+    const reel = new THREE.CylinderGeometry(REEL.dia / 2, REEL.dia / 2 + 3, REEL.height, 28);
+    reel.rotateX(Math.PI / 2); reel.translate(CABLE_X, y, CEILING - REEL.height / 2);
+    root.add(mesh(reel, M.steel));
+    const c = mesh(new THREE.CylinderGeometry(CABLE_DIAMETER / 2, CABLE_DIAMETER / 2, 1, 12).rotateX(Math.PI / 2), M.steel);
+    c.position.set(CABLE_X, y, 0);
     root.add(c);
-    // Ceiling block: a pulley cheek in a small plate. The winch behind it is unresolved in the study and not drawn.
-    const plate = new THREE.CylinderGeometry(40, 44, 8, 28); plate.rotateX(Math.PI / 2); plate.translate(PULLEY_X, y, CEILING - 4);
-    root.add(mesh(plate, M.steel));
-    const sheave = new THREE.TorusGeometry(19, 7, 10, 24); sheave.rotateX(Math.PI / 2); sheave.rotateZ(0); sheave.translate(PULLEY_X, y, CEILING - 28);
-    root.add(mesh(sheave, M.steel));
     return c;
   });
+  // Separate slim lifting line from a small block high on the wall, drawn only while it is hooked on to fold.
+  const eyeMid = liftEyeAt(variant, 0);
+  const block = new RoundedBoxGeometry(26, 40, 56, 3, 7).translate(EAST - 13, eyeMid.y, LIFT_LINE.z);
+  root.add(mesh(block, M.steel));
+  const line = mesh(new THREE.CylinderGeometry(LIFT_LINE.diameter / 2, LIFT_LINE.diameter / 2, 1, 8), M.steel);
+  root.add(line);
+
   // Three back cushions against the wall, one per person. Loose, so they come off before folding. ESTIMATE.
   const loose = new THREE.Group();
   const { y0, y1 } = VARIANTS[variant].deck;
   const mid = (y0 + y1) / 2;
   [-1, 0, 1].forEach((k, i) => {
-    const c = cushion(120, 390, 300, { r: 52, crown: 0.05, seed: 40 + i, wrinkle: 2.4, density: 20, pinch: 0.22 });
+    const c = cushion(120, 390, 300, { r: 34, crown: 0.14, seed: 40 + i, wrinkle: 2.6, density: 12, pinch: 0.16, seam: 2.2 });
     c.rotateY(-0.16 + i * 0.01);
     c.rotateZ(0.015 * k);
     c.translate(EAST - 92, mid + k * 410, SEAT_TOP + CUSHION + 146);
@@ -158,14 +168,23 @@ export function buildPlatform(variant, M) {
     const angle = Math.min(1, Math.max(0, t)) * 90;
     pivot.rotation.y = THREE.MathUtils.degToRad(angle);
     loose.visible = t < 0.02;
-    const f = fittingAt(angle);
+    // Open: taut and vertical. Any fold at all: reeled up, because they go slack as the edge rises and would only droop.
+    const open = t < 0.02;
+    const f = fittingAt(0);
     for (const c of cables) {
-      const top = new THREE.Vector3(PULLEY_X, c.userData.y, CEILING - 24);
-      const bottom = new THREE.Vector3(f.x, c.userData.y, f.z);
+      const z0 = open ? f.z : reelBottom - 28;
+      c.scale.set(1, 1, reelBottom - z0);
+      c.position.z = (reelBottom + z0) / 2;
+    }
+    const eye = liftEyeAt(variant, angle);
+    line.visible = !open;
+    if (!open) {
+      const top = new THREE.Vector3(LIFT_LINE.x, eye.y, LIFT_LINE.z - 28);
+      const bottom = new THREE.Vector3(eye.x, eye.y, eye.z + Math.cos(THREE.MathUtils.degToRad(angle)) * 13);
       const d = new THREE.Vector3().subVectors(top, bottom);
-      c.scale.set(1, d.length(), 1);
-      c.position.copy(top).add(bottom).multiplyScalar(0.5);
-      c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+      line.scale.set(1, d.length(), 1);
+      line.position.copy(top).add(bottom).multiplyScalar(0.5);
+      line.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
     }
     root.updateMatrixWorld(true);
   };
@@ -221,15 +240,15 @@ export function buildBed(M, { flapOpen = 0 } = {}) {
 
   // Two pillows at the head end, leaning on the wall block.
   const pillow = (y, r, z, seed) => {
-    const p = cushion(460, 570, 118, { r: 56, crown: 0.26, seed, wrinkle: 2.6, density: 24, pinch: 0.3 });
+    const p = cushion(480, 575, 96, { r: 30, crown: 0.42, seed, wrinkle: 3, density: 16, pinch: 0.34, seam: 1.4 });
     p.rotateZ(r); p.rotateY(0.42); p.translate(B.x0 + 268, y, z);
     return p;
   };
-  g.add(mesh(pillow(B.y0 + 300, 0.03, dz + 118, 21), M.pillow));
-  g.add(mesh(pillow(B.y0 + 890, -0.04, dz + 114, 22), M.pillow));
+  g.add(mesh(pillow(B.y0 + 298, 0.03, dz + 112, 21), M.pillow));
+  g.add(mesh(pillow(B.y0 + 898, -0.04, dz + 108, 22), M.pillow));
 
   // One accent cushion: the seat pad's colour, so the two pieces belong together.
-  const acc = cushion(320, 400, 120, { r: 56, crown: 0.3, seed: 31, wrinkle: 2.2, density: 20, pinch: 0.28 });
+  const acc = cushion(340, 420, 90, { r: 30, crown: 0.4, seed: 31, wrinkle: 2.6, density: 14, pinch: 0.3, seam: 1.6 });
   acc.rotateZ(0.1); acc.rotateY(0.34); acc.translate(B.x0 + 520, B.y0 + 560, dz + 102);
   g.add(mesh(acc, M.fabric));
   return g;

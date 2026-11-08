@@ -25,9 +25,9 @@ export class Raster {
     const r = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.NeutralToneMapping;
-    r.toneMappingExposure = 1.15;
+    r.toneMappingExposure = 0.92;
     r.shadowMap.enabled = true;
-    r.shadowMap.type = THREE.VSMShadowMap;
+    r.shadowMap.type = THREE.PCFSoftShadowMap; // VSM left jagged black fringes on the duvet edge
     this.renderer = r;
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.05, 40);
     this.controls = new OrbitControls(this.camera, canvas);
@@ -42,7 +42,7 @@ export class Raster {
     // The room is a closed box, so the sky map only reaches it as a dim ambient: real bounce is what is missing here.
     scene.environmentIntensity = 0.42;
     const d = built.sky.sunDir;
-    const sun = new THREE.DirectionalLight(0xfff0dc, 3.6);
+    const sun = new THREE.DirectionalLight(0xfff0dc, 2.6);
     sun.position.copy(P(1333, 2500, 1200)).addScaledVector(d, 7);
     sun.target.position.copy(P(1333, 2500, 1200));
     sun.castShadow = true;
@@ -50,8 +50,7 @@ export class Raster {
     sun.shadow.mapSize.set(map, map);
     Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 16 });
     sun.shadow.bias = -0.0005;
-    sun.shadow.radius = 7;
-    sun.shadow.blurSamples = tier === 'high' ? 24 : 12;
+    sun.shadow.radius = 5;
     scene.add(sun, sun.target);
     // Stand-ins for what a path tracer gets for free: sky glow through the windows and sun bouncing off the floor.
     const bounce = new THREE.PointLight(0xffd8a8, 2.2, 7, 1.4);

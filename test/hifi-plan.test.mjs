@@ -1,7 +1,7 @@
 // The design's numbers against the measured room, without a browser.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BED, CEILING, CUSHION, DECK_THICK, EAST, HINGE, LEDGER, PULLEY_X, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt, foldedTop, pianoPlace } from '../web/hifi/plan.mjs';
+import { BED, CABLE_X, CEILING, CUSHION, CUSHION_EDGE_INSET, DECK_THICK, EAST, FREE_EDGE_X, HINGE, LEDGER, LIFT_LINE, SEAT_TOP, VARIANTS, cablePoints, deckOutline, fittingAt, foldedTop, liftEyeAt, pianoPlace } from '../web/hifi/plan.mjs';
 
 // Measured values from room.json and items.json on 2026-11-08, copied here because the data is private.
 const DOOR_FRAME_NORTH = 1570; // east wall, door trim's north edge
@@ -22,13 +22,18 @@ test('the folded seat fits under the ceiling and between hinge and wall', () => 
   assert.equal(LEDGER.depth, 63);
 });
 
-test('the cables can actually pull the seat to vertical', () => {
-  // A pulley further into the room than the hinge pulls the edge away from the wall near the top.
-  assert.ok(PULLEY_X >= HINGE.x);
-  const open = fittingAt(0); const shut = fittingAt(90);
-  assert.ok(open.x < HINGE.x - 700);
-  assert.ok(Math.abs(shut.x - HINGE.x) < 1);
-  assert.ok(shut.z > SEAT_TOP + 700 && shut.z < CEILING);
+test('load cables hang above the outer edge and clear of the cushion', () => {
+  assert.equal(fittingAt(0).x, CABLE_X);
+  assert.ok(CABLE_X > FREE_EDGE_X, 'fitting must be on the seat');
+  // At the cable's y the pad's outer limit is the edge plus its inset; the cable must be outside that.
+  assert.ok(CABLE_X < FREE_EDGE_X + 25 + CUSHION_EDGE_INSET);
+});
+
+test('the lift line starts above the folded edge, near the wall', () => {
+  assert.ok(LIFT_LINE.x >= HINGE.x);
+  assert.ok(LIFT_LINE.z > foldedTop() && LIFT_LINE.z < CEILING);
+  const folded = liftEyeAt('corner', 90);
+  assert.ok(Math.abs(folded.x - HINGE.x) < 1 && folded.z < LIFT_LINE.z);
 });
 
 for (const [id, v] of Object.entries(VARIANTS)) {

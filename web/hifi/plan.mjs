@@ -21,10 +21,13 @@ export const CABLE_DIAMETER = 12; // study; no load calculation behind it
 export const LEDGER = { depth: 63, z0: 1380, z1: 1500, lip: 44, lipZ0: 1416, lipZ1: 1466 };
 export const HINGE = { x: EAST - LEDGER.depth, z: SEAT_TOP };
 
-// CHANGE: the study hangs the cables straight up from the open edge (x 1800). A cable anchored out there
-// can never pull the seat to vertical: past the line from hinge to anchor it pulls the edge away from
-// the wall. The pulley has to sit no further out than the hinge, so the cables run on a diagonal.
-export const PULLEY_X = 2622; // ESTIMATE
+// Revision 6: load cables hang straight down from the ceiling, directly above the seat's outer edge, so the
+// space above the seat stays clear. They only hold it open. A vertical cable goes slack as the seat rises, so
+// it cannot fold the seat: folded, the cables are reeled up to the ceiling, and a separate slim line from high
+// on the wall lifts it. That line would cross the seat if it stayed attached while open, so it hooks on only
+// to fold. Reels, hook and winch are unresolved; what is drawn is their likely place and rough size. ESTIMATE.
+export const LIFT_LINE = { x: EAST - 24, z: 2510, diameter: 4 };
+export const REEL = { dia: 74, height: 46 };
 
 export const BED = {
   x0: 142, x1: 2142, y0: 3819, y1: 5019, // study: 2000 x 1200 centred on 1142, 4419
@@ -82,19 +85,32 @@ export function deckOutline(variant) {
   return [[HINGE.x, y0, 245], [HINGE.x, y1, 245], [endX, y1, 275], [FREE_EDGE_X, mid, 5000], [endX, y0, 275]];
 }
 
-/** Two cables, 110 in from each end (study: 40; moved so the fitting lands on the straight run of the edge). */
+// CHANGE: the study puts the cables 19 and 11 mm from the seat's ends (y 3800 and 2480). The rounded corners
+// pull the edge away there, so they land where the corner meets the straight run instead, 275 from each end.
+const CABLE_FROM_END = 275;
+const EDGE_AT_CABLE = FREE_EDGE_X + 42 - (42 * CABLE_FROM_END) / 675;
+export const CABLE_INSET = 32; // ESTIMATE: fitting back from the free edge
+export const CUSHION_EDGE_INSET = 72; // CHANGE: pad stops short of the fittings, so no cable touches it (study 30)
+export const CABLE_X = EDGE_AT_CABLE + CABLE_INSET;
+
 export function cablePoints(variant) {
   const { y0, y1 } = VARIANTS[variant].deck;
-  return [y0 + 110, y1 - 110];
+  return [y0 + CABLE_FROM_END, y1 - CABLE_FROM_END];
 }
-
-export const CABLE_INSET = 62; // ESTIMATE: fitting back from the free edge
 
 /** Where the cable fitting is at a given fold angle (0 open, 90 degrees folded), x and z only. */
 export function fittingAt(angleDeg) {
-  const s = HINGE.x - (FREE_EDGE_X + 42 + CABLE_INSET);
+  const s = HINGE.x - CABLE_X;
   const a = (angleDeg * Math.PI) / 180;
   return { x: HINGE.x - s * Math.cos(a), z: HINGE.z + s * Math.sin(a) };
+}
+
+/** The lift line's hook on the free edge, at mid length. */
+export function liftEyeAt(variant, angleDeg) {
+  const s = HINGE.x - (FREE_EDGE_X + 26);
+  const a = (angleDeg * Math.PI) / 180;
+  const { y0, y1 } = VARIANTS[variant].deck;
+  return { x: HINGE.x - s * Math.cos(a), y: (y0 + y1) / 2, z: HINGE.z + s * Math.sin(a) };
 }
 
 export function foldedTop() {

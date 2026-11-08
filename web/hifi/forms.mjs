@@ -203,7 +203,7 @@ export function pebble(outline, profile, { along = 'y' } = {}) {
 }
 
 /** A soft, overstuffed block: rounded edges, a crown, a slightly uneven skin. w along x, d along y, h up z. */
-export function cushion(w, d, h, { r = Math.min(h * 0.48, 60), crown = 0.16, seed = 1, wrinkle = 1, density = 22, pinch = 0.06 } = {}) {
+export function cushion(w, d, h, { r = Math.min(h * 0.48, 60), crown = 0.16, seed = 1, wrinkle = 1, density = 22, pinch = 0.06, seam = 0 } = {}) {
   const sx = Math.max(6, Math.round(w / density)); const sy = Math.max(6, Math.round(d / density)); const sz = Math.max(4, Math.round(h / (density * 0.7)));
   const box = new THREE.BoxGeometry(w, d, h, sx, sy, sz);
   box.deleteAttribute('uv'); box.deleteAttribute('normal');
@@ -230,6 +230,12 @@ export function cushion(w, d, h, { r = Math.min(h * 0.48, 60), crown = 0.16, see
     const s = 0.012;
     const n = noise3(x * s, y * s, z * s, seed) * 2.6 + noise3(x * s * 3.1, y * s * 3.1, z * s * 3.1, seed + 3) * 0.9;
     z += Math.sign(nz || 1) * n * wrinkle * (0.4 + Math.abs(nz) * 0.6);
+    // The seam around the waist: a shallow pull-in, which is most of what makes it read as sewn.
+    if (seam) {
+      const k = Math.exp(-((z / (h * 0.055 + 1.5)) ** 2)) * seam;
+      const sideX = Math.abs(nx) ** 4; const sideY = Math.abs(ny) ** 4;
+      x -= Math.sign(nx) * k * Math.min(1, sideX + 0.1); y -= Math.sign(ny) * k * Math.min(1, sideY + 0.1);
+    }
     p.setXYZ(i, x, y, z);
   }
   g.computeVertexNormals();

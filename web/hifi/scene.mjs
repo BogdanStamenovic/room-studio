@@ -68,7 +68,7 @@ export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, 
 /** Named viewpoints in room mm: position, target, vertical field of view. */
 export const VIEWS = {
   hero: { pos: [420, 1320, 1560], at: [2200, 3500, 1100], fov: 62, label: 'Seat from the piano end' },
-  heroSouth: { pos: [300, 4050, 1560], at: [2300, 2700, 1120], fov: 60, label: 'Seat from the bed end' },
+  heroSouth: { pos: [260, 4560, 1500], at: [2350, 2850, 1080], fov: 62, label: 'Seat from the bed end' },
   foot: { pos: [430, 4400, 760], at: [2667, 4250, 1000], fov: 58, label: 'From the bed, looking at its foot' },
   under: { pos: [760, 2300, 420], at: [2400, 3100, 1540], fov: 62, label: 'Under the seat, from the floor' },
   windows: { pos: [2560, 880, 1520], at: [300, 3700, 1120], fov: 60, label: 'Toward the windows' },

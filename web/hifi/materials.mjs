@@ -146,7 +146,7 @@ function weave() {
       h[y * size + x] = Math.max(0, a) * (over ? 1 : 0.84) + j;
     }
   }
-  return tex(normalFrom(h, size, 3.2), { repeatM: 0.04 });
+  return tex(normalFrom(h, size, 3.2), { repeatM: 0.08 }); // 5 mm threads: chunky wool that still shows at room distance
 }
 
 function melamineGrain() {
@@ -207,7 +207,7 @@ export function makeMaterials({ upholstery = 'vermilion' } = {}) {
     mirror: S({ color: 0xeef0f0, roughness: 0.012, metalness: 1 }),
     shutter: S({ color: 0x5a5e5c, roughness: 0.55, metalness: 0.2 }),
     radiator: S({ color: 0xdcdcd7, roughness: 0.42 }),
-    fabric: P({ color: accent, roughness: 0.82, normalMap: wv, normalScale: new THREE.Vector2(0.75, 0.75), sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(accent).lerp(new THREE.Color(0xffffff), 0.25) }),
+    fabric: P({ color: accent, roughness: 0.96, normalMap: wv, normalScale: new THREE.Vector2(1.1, 1.1), sheen: 0.35, sheenRoughness: 0.75, sheenColor: new THREE.Color(accent).lerp(new THREE.Color(0xffffff), 0.25) }),
     holdA: S({ color: accent, roughness: 0.74, normalMap: gritN, normalScale: new THREE.Vector2(0.5, 0.5) }),
     holdB: P({ ...oakT, roughness: 0.48, normalScale: new THREE.Vector2(0.3, 0.3) }),
     linen: P({ color: 0xe8e4da, roughness: 0.95, normalMap: wv, normalScale: new THREE.Vector2(0.3, 0.3), sheen: 0.4, sheenRoughness: 0.7, sheenColor: new THREE.Color(0xffffff) }),
