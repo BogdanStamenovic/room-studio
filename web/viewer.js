@@ -4,6 +4,9 @@ import { resolveRoom, poseAt } from './geometry.mjs';
 
 const C = { mat: 0x17483b, fine: 0x2b6250, coarse: 0x57957f, chalk: 0xeef3ea, wall: 0xdfe8df, edge: 0x1c2925, door: 0xb98a55, window: 0x8cc6d8, fixture: 0xc4ccc4 };
 const FOAM = ['#e9efe6', '#c9dccf', '#b8cdd8', '#e3d3b5', '#d8c3d0', '#c4d0a9'];
+// Repeated parts of one thing: labelling each just stacks unreadable tags on top of each other.
+const QUIET_KINDS = new Set(['shelf', 'wood board', 'wall block']);
+const STAGE_GAP = 800;
 const ITEM_COLOR = { keep: '#b8cdd8', hidden: '#d8c3d0', automation: '#f5b700', build: '#e3d3b5', leaving: '#9aa59f' };
 
 function label(text, { color = '#eef3ea', bg = 'rgba(15,51,41,.88)', size = 200 } = {}) {
@@ -116,7 +119,7 @@ export class Viewer {
       } else {
         // Narrow viewports (a phone, or the sheet open) need more distance to fit the same room.
         const k = Math.max(1, 1.45 / Math.min(this.aspect || 1.5, 1.45)) ** 0.75;
-        this.persp.position.set(c.x - r * 1.4 * k, c.y - r * 2.1 * k, c.z + r * 1.9 * k);
+        this.persp.position.set(c.x + r * 1.4 * k, c.y - r * 2.1 * k, c.z + r * 1.9 * k);
       }
     }
     this.controls = new OrbitControls(this.camera, this.canvas);
@@ -155,14 +158,45 @@ export class Viewer {
     for (const e of room.edges) this.addWall(e, room);
     for (const f of roomData.fixed || []) this.addFixed(f, room);
     for (const it of items) if (it.placed && it.w && it.d && it.h) this.addItem(it);
+    this.stageRight = this.addStaging(items.filter((it) => !it.placed), bounds);
     if (!this.study) this.frameRoom();
     this.request();
+  }
+
+  /** Things not yet placed wait on the mat beside the room, drawn to scale. Returns the row's right edge. */
+  addStaging(items, { maxX, maxY }) {
+    const sized = items.filter((it) => it.w && it.d && it.h);
+    const unsized = items.filter((it) => !(it.w && it.d && it.h));
+    if (!sized.length && !unsized.length) return maxX;
+    const x = maxX + STAGE_GAP;
+    let y = maxY;
+    let right = x;
+    const title = label('Not placed yet', { size: 240, color: '#1c2925', bg: '#eef3ea' });
+    title.position.set(x + 900, y + 300, 30);
+    this.world.add(title);
+    for (const it of sized) {
+      const m = box([it.w, it.d, it.h], ITEM_COLOR[it.category] || FOAM[0]);
+      m.position.set(x + it.w / 2, y - it.d / 2, it.h / 2);
+      this.world.add(m);
+      const s = label(`${it.name} ${it.w} x ${it.d} x ${it.h}`, { size: 150 });
+      s.position.set(x + it.w / 2, y - it.d / 2, it.h + 110);
+      this.world.add(s);
+      right = Math.max(right, x + it.w);
+      y -= it.d + 500;
+    }
+    for (const it of unsized) {
+      const s = label(`${it.name}: no size yet`, { size: 150 });
+      s.position.set(x + 900, y - 100, 30);
+      this.world.add(s);
+      y -= 400;
+    }
+    return right + 500;
   }
 
   frameRoom() {
     const room = this.resolved;
     if (!room) return;
-    const xs = room.corners.map((p) => p[0]);
+    const xs = [...room.corners.map((p) => p[0]), this.stageRight ?? -Infinity];
     const ys = room.corners.map((p) => p[1]);
     const c = new THREE.Vector3((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2, room.maxHeight / 2);
     const r = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + 300;
@@ -171,7 +205,7 @@ export class Viewer {
   }
 
   addMat({ minX, maxX, minY, maxY }) {
-    const pad = 3000;
+    const pad = 4500;
     const snap = (v, d) => Math.floor(v / d) * d;
     const x0 = snap(minX - pad, 1000); const x1 = snap(maxX + pad, 1000) + 1000;
     const y0 = snap(minY - pad, 1000); const y1 = snap(maxY + pad, 1000) + 1000;
@@ -221,7 +255,7 @@ export class Viewer {
     // Clockwise polygon: outward is to the left of the direction of travel.
     const outward = new THREE.Vector3(-dy / len, dx / len, 0);
     const mid = new THREE.Vector3((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, 0);
-    group.userData = { outward, mid };
+    group.userData = { outward, mid, name: e.name, attached: [], hidden: false };
     this.walls.push(group);
     this.world.add(group);
     const text = e.measured ? `${e.label} ${Math.round(e.shownLength)}` : `${e.label} about ${Math.round(e.shownLength)}?`;
@@ -248,10 +282,14 @@ export class Viewer {
     );
     mesh.rotation.z = Math.atan2(dy, dx);
     this.world.add(mesh);
+    const wall = this.walls.find((w) => w.userData.name === f.wall);
+    wall?.userData.attached.push(mesh);
+    if (QUIET_KINDS.has(f.kind)) return;
     const s = label(f.kind, { size: 170 });
     s.position.copy(mesh.position);
     s.position.z = bottom + height + 90;
     this.world.add(s);
+    wall?.userData.attached.push(s);
   }
 
   addItem(it) {
@@ -327,14 +365,21 @@ export class Viewer {
   }
 
   render() {
-    if (this.view === 'plan') {
-      for (const w of this.walls) w.visible = true;
-    } else {
-      const cam = this.camera.position;
-      for (const w of this.walls) {
-        const { outward, mid } = w.userData;
-        // Dollhouse: a wall between the camera and the room is hidden.
-        w.visible = (cam.x - mid.x) * outward.x + (cam.y - mid.y) * outward.y <= 0;
+    const cam = this.camera.position;
+    for (const w of this.walls) {
+      const { outward, mid, attached } = w.userData;
+      // Dollhouse: a wall between the camera and the room is hidden, and what is fixed to it goes
+      // faint rather than away, so a floor-to-ceiling wardrobe stops blocking the view but stays readable.
+      const hide = this.view !== 'plan' && (cam.x - mid.x) * outward.x + (cam.y - mid.y) * outward.y > 0;
+      w.visible = !hide;
+      if (w.userData.hidden !== hide) {
+        w.userData.hidden = hide;
+        for (const o of attached) {
+          if (o.isSprite) { o.visible = !hide; continue; }
+          o.material.transparent = hide;
+          o.material.opacity = hide ? 0.14 : 1;
+          o.material.depthWrite = !hide;
+        }
       }
     }
     this.renderer.render(this.scene, this.camera);

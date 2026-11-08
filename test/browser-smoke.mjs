@@ -54,6 +54,15 @@ try {
   await page.click('button:has-text("Save measurements")');
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${shots}/05-measure.png` });
+  // A kind the form's list does not offer must survive the form, or a save renames a wardrobe to a door.
+  execFileSync('node', ['-e', `import('./server/store.mjs').then(({ Store }) => { const s = new Store(); const r = s.room(); r.fixed.push({ id: 'fx-wardrobe', kind: 'wardrobe', wall: 'cd', offset: 0, width: 1000, bottom: 0, height: 2000, depth: 500, note: '' }); s.saveRoom(r); })`], { env });
+  await page.waitForTimeout(4500);
+  await page.click('#rail button:has-text("Room")');
+  await page.click('#rail button:has-text("Measure")');
+  await page.click('button:has-text("Save measurements")');
+  await page.waitForTimeout(700);
+  const kinds = JSON.parse(execFileSync('node', ['bin/room-studio.mjs', 'room'], { env, encoding: 'utf8' })).measurements.fixed;
+  assert(kinds.some((f) => f.id === 'fx-wardrobe' && f.kind === 'wardrobe'), `form renamed the wardrobe: ${JSON.stringify(kinds)}`);
   const checkText = await page.locator('.check').first().textContent();
   console.log('check box:', checkText);
   assert(/Numbers agree|mm from/.test(checkText), 'measure check missing');
@@ -118,6 +127,9 @@ try {
   await page.click('button:has-text("Add item")');
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${shots}/10-items.png` });
+  const staged = await page.evaluate(() => window.roomStudio.viewer.stageRight);
+  const maxX = await page.evaluate(() => Math.max(...window.roomStudio.viewer.resolved.corners.map((p) => p[0])));
+  assert(staged > maxX + 800, `unplaced item is not beside the room: ${staged} vs ${maxX}`);
   assert(await page.locator('.listing strong:has-text("Router and NAS")').count() === 1, 'item not listed');
   await page.click('#rail button:has-text("Plan")');
   await page.waitForTimeout(200);

@@ -80,6 +80,16 @@ test('saving measurements keeps the previous version', async () => {
   assert.ok(told.some((t) => t.includes('measurements')));
 });
 
+test('saving measurements keeps an agent-entered kind, id and note on things fixed to walls', async () => {
+  const fixed = [{ id: 'fx-south-wardrobe', kind: 'wardrobe', wall: 'cd', offset: 0, width: 2667, bottom: 0, height: 2580, depth: 555, note: 'from a call' }];
+  assert.equal((await req('/api/room', { method: 'PUT', body: JSON.stringify({ walls: { ab: 4000 }, fixed }) })).status, 200);
+  const saved = store.room().fixed[0];
+  assert.equal(saved.id, 'fx-south-wardrobe');
+  assert.equal(saved.kind, 'wardrobe');
+  assert.equal(saved.bottom, 0);
+  assert.equal(saved.note, 'from a call');
+});
+
 test('photos reject non-images and path tricks do not escape', async () => {
   assert.equal((await req('/api/photos', { method: 'POST', body: 'not an image' })).status, 415);
   const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);

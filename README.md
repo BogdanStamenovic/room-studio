@@ -88,13 +88,15 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **Openings do not cut holes in the wall.** Doors and windows are flat boxes on it.
 - **Sloped ceilings are approximated.** Each wall's top is a straight line between corner heights, and there is no ceiling surface. Beams and bulkheads are boxes.
 - **The check covers plan shape only.** With 15 mm tolerance it catches a wrong reading, not an error spread evenly across every measurement.
-- **Items are placed by the agent**, not by dragging. Draw where you want them.
+- **Items are placed by the agent**, not by dragging. Draw where you want them. Sized items with no position wait in a row on the mat beside the room.
 - **"Inside" is an orbit from near a corner**, not a walkable view.
 - **Calls are Serbian-first.** That is how hotline-call's speech recognition is set; English is misheard.
+- **Calls are cut at 2 hours** by hotline-call.
 - **Each spoken turn waits for the agent's whole reply**, usually seconds and sometimes tens of seconds, because the bridge reads a finished turn. Holding phrases fill the wait.
 - **Measured on one test call each, 2026-11-08, with synthesized speech:** agent connected 3.6 s after media started, first audio 2.0 s after the speaker stopped (a one-line agent reply), first call from cold about 18 s extra to load speech recognition.
 - **Hanging up takes about 25 s to reach the agent and free the GPU** (measured on one call; the audio socket closes at once, but the daemon notices later). Calling back inside that window has not been tested.
 - **Not tested on a real phone or a real microphone**, only Chrome with a fake mic and paced synthesized speech.
+- **Deploying the site drops a call in progress**, because the audio runs through its process. Check `active_calls` on hotline-calld's `/health` first.
 - **One call at a time. A phone that locks may cut the mic.** The page asks the screen to stay on where the browser allows it.
 - **Messages typed on the site are not verified Discord messages.** Any process on the box could post the same thing, so money and outward actions still need a message from Discord itself.
 - **Talk shows the last 100 channel messages** and links image attachments rather than showing them.

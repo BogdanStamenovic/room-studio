@@ -124,7 +124,7 @@ function renderStudies(sheet) {
   fill(sheet, 
     h('h2', {}, 'Studies'),
     h('p', { class: 'quiet' }, 'Low-res block models and motion. Check that I understood you before anything gets detailed.'),
-    studies.length ? h('ul', { class: 'listing' }, [...studies].reverse().map((s) => h('li', {},
+    studies.length ? h('ul', { class: 'listing' }, [...studies].sort((a, b) => (b.revisions.at(-1).at > a.revisions.at(-1).at ? 1 : -1)).map((s) => h('li', {},
       h('button', { type: 'button', class: 'pick', onclick: () => openStudy(s.id) },
         h('strong', {}, s.title),
         h('span', { class: `tag ${s.status === 'approved' ? 'approved' : ''}` }, s.status === 'approved' ? 'Approved' : `Revision ${s.revisions.length}`))))) : h('p', {}, 'No studies yet. Describe a piece in Talk and one will appear here.'),
@@ -242,7 +242,8 @@ function fixedEntry(f) {
   const startLabel = numField(startText(f.wall), f.offset, 'offset');
   e.append(
     h('div', { class: 'grid2' },
-      h('label', {}, 'What', h('select', { name: 'kind' }, FIXED_KINDS.map((k) => h('option', { value: k, selected: k === f.kind }, k)))),
+      // Agent-entered kinds such as "wardrobe" must survive a save, so the current one is always offered.
+      h('label', {}, 'What', h('select', { name: 'kind' }, [...new Set([...FIXED_KINDS, f.kind || 'door'])].map((k) => h('option', { value: k, selected: k === (f.kind || 'door') }, k)))),
       h('label', {}, 'Wall', h('select', { name: 'wall', onchange: (ev) => { startLabel.firstChild.textContent = startText(ev.target.value); } }, Object.entries(WALL_NAMES).map(([w, name]) => h('option', { value: w, selected: w === f.wall }, name))))),
     h('div', { class: 'grid2' },
       startLabel,
@@ -267,7 +268,7 @@ function renderMeasure(sheet) {
       walls: { ab: v('ab'), bc: v('bc'), cd: v('cd'), da: v('da') },
       diagonals: { ac: v('ac'), bd: v('bd') },
       heights: { a: v('h-a'), b: v('h-b'), c: v('h-c'), d: v('h-d') },
-      fixed: [...fixedBox.children].map((el) => Object.fromEntries(['kind', 'wall', 'offset', 'width', 'bottom', 'height', 'depth', 'note'].map((n) => [n, el.querySelector(`[name="${n}"]`).value])).valueOf()),
+      fixed: [...fixedBox.children].map((el) => ({ id: el.dataset.fixed || undefined, ...Object.fromEntries(['kind', 'wall', 'offset', 'width', 'bottom', 'height', 'depth', 'note'].map((n) => [n, el.querySelector(`[name="${n}"]`).value])) })),
       notes: v('notes'),
     });
     await refresh(true);

@@ -93,7 +93,8 @@ function cleanRoom(body, prev) {
     id: safeId(f.id) || newId('fx'),
     kind: String(f.kind || 'other').slice(0, 30),
     wall: String(f.wall || 'ab').slice(0, 2),
-    offset: cleanLength(f.offset),
+    // Unlike a length, a position can be zero: this thing starts right at the corner.
+    offset: f.offset === 0 || f.offset === '0' ? 0 : cleanLength(f.offset),
     width: cleanLength(f.width),
     bottom: f.bottom === 0 || f.bottom === '0' ? 0 : cleanLength(f.bottom),
     height: cleanLength(f.height),
