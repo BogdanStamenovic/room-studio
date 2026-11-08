@@ -123,6 +123,36 @@ export function pianoPlace(variant) {
 }
 
 // --- The expanding table. Every number below is a proposal, not his measurement. ---
+//
+// Order of motion, and what enforces it on the real thing (nothing here is built or tested):
+// 1. Leg swings down and a spring latch drops in. The latch pulls, by cable, the bolt that pins the top to the
+//    frame, so with the leg not down the top is held mechanically, whatever the software does. The leg's
+//    down switch is also in series with the travel motor's power.
+// 2. Top slides south by belt, carried at four points: two rail trucks, a front roller, the leg's wheel.
+//    Monitor and PS4 stay inside those four at every position.
+// 3. Top's end switch allows the lift. Two lead screws tied by a belt raise the set. Near the top the leaf folds
+//    out and lands on the front beam. Reverse order to close; the set's down switch allows the top to move.
+//
+// Safety: hold-to-run buttons, so letting go stops it. Motor current trips on a stall. Red stop cuts motor
+// power. A limb caught at 50 mm/s is the design case; the force limit is still to be chosen and tested. The iron's
+// mains is switched by the set's up switch, and lowering is refused until the iron has been off for a set time.
+// Whatever is on the leaf must be cleared by hand before stowing, since the leaf goes vertical.
+// Power loss: everything stays where it is (self-locking screws, belt through the gearbox) and it does nothing
+// until a button is held again. Each motion has a 5 mm hex socket for a hand crank: belt on top of the duct,
+// lift on its motor at the floor, leg at the end of its screw.
+//
+// Hand estimates against REV's published stall figures (docs.revrobotics.com, HD Hex Motor), forces high on
+// purpose per his rule, none simulated, and which gearboxes he owns is unknown:
+//   Travel: 150 kg x 0.05 rolling x 1.5 start = 110 N, on a 16 mm radius pulley = 1.8 Nm. 60:1 stalls at 5.75.
+//   Lift:   150 kg on TR12x3 at about 35 percent efficiency = 2.0 Nm. 40:1 stalls at 4.2. About 75 s up.
+// The leaf needs two small linear actuators, which are not REV motors and not in his stock as far as known.
+//
+// Fumes: a filtered extractor stands on the set, with a hood on an arm. The set sits under the windows when
+// raised, so tilting one gives fresh air, and the radiator's rising air helps it. Full-turn opening needs the
+// arm folded, and with the table closed the monitor stands in the sash's way, so open the table first.
+// Cables: monitor and PS4 mains, video and network ride in one chain in the duct, south of the radiator. The
+// server stays fixed under the set, behind a shield from the radiator, with air in from the knee side.
+//
 // Facts it answers to, from room.json: lower wall block ends at y 3779, wardrobe front at y 555, windows at
 // y 2379..3289 and 3314..4224 with the sill at 1030. Radiator numbers are ESTIMATE from a photo (room.mjs).
 // His height is 184 cm. ESTIMATE from standard body proportions: seated with a 470 seat, knee top about 590,
