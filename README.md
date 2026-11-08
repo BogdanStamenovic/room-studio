@@ -72,12 +72,42 @@ A study, in millimetres, with x and y on the floor (+y is north) and z up:
 
 `pos` is where the block's pivot sits, relative to its `parent` if it has one. `pivot` is measured from the block's centre and defaults to the centre. Omit `place` to show the study alone on the mat.
 
+## Render page
+
+`/render` shows the design at finished-look quality, beside the block studies, which are unchanged and still the place to check motion.
+
+| Mode | What it is | Works on |
+|---|---|---|
+| Stills | JPEGs path-traced ahead of time | Anything that shows an image; needs no WebGL |
+| Look around | A path-traced 360 from inside the room; drag to look | Anything with basic WebGL |
+| Orbit | Live PBR with sun shadows, and on a desktop GPU ambient occlusion and a live mirror. Slider folds the seat. From outside, walls in the way are cut away | Anything with WebGL 2; a slow frame rate drops ambient occlusion and the mirror once |
+| Refine | Path traces the current Orbit view on the viewer's own GPU, starting noisy and clearing over a minute or so | Desktop GPUs, from inside the room only |
+
+The scene is built in the browser from `room.json`, `items.json` and the numbers in `web/hifi/plan.mjs`: real window holes, rounded forms, generated oak, parquet and fabric textures. Nothing is a mesh file, so no asset downloads and no build step. `plan.mjs` has no three.js in it, so `test/hifi-plan.test.mjs` checks the design against the measured room.
+
+To make the stills, with a server running on the data directory they belong to:
+
+```sh
+node scripts/render-stills.mjs --base http://127.0.0.1:3300 --password P --out "$DATA/renders" JOBS.json
+```
+
+It drives the real page in headless Chrome on the real GPU and writes `NAME.png`, `NAME.jpg` and `manifest.json`. Each job is the arguments of `hifi.renderPT` in `web/render.js`, plus a `label` to list it. Copies live in `$DATA/renders`, served behind the login, and not in this repo: the repo is public and these show his room.
+
+Choices that may look odd:
+
+- **Stills first, not live path tracing.** See the numbers under Limitations: a phone cannot do it, and even an RTX 4060 needs minutes.
+- **`RANDOM_TYPE` is forced to 0 in `web/hifi/pt.mjs`.** three-gpu-pathtracer 0.0.24's default sampler left a fixed per-pixel speckle on three 0.180: noise on a flat wall measured 78.0, 73.9 and 74.8 at 25, 100 and 400 samples. With plain PCG random it is 38.0, 20.4 and 10.5, halving per four times the samples as it should.
+- **Three.js stays at 0.180, the path tracer at 0.0.24.** Newer path tracer releases need three 0.185 or later, which would touch the block viewer.
+- **Sky light comes through area lights in the window holes.** Nearly every sky ray from inside a room hits a wall. The lighting map holds only the sun; camera rays still see the painted sky.
+- **White plaster, not brick and concrete.** He said the walls are brick and the ceiling concrete. The photos show them plastered white, so that decides the fixings, not the look.
+
 ## Tests
 
 ```sh
 npm test                     # geometry, login, API
 node test/browser-smoke.mjs  # the real pages in system Chrome, against throwaway data; screenshots in shots/
 node test/call-smoke.mjs     # the Call button with a fake microphone and a stand-in call service
+node test/render-smoke.mjs   # the render page on software GL: orbit, phone, no-WebGL fallback, and that the block page still loads
 ```
 
 ## Limitations

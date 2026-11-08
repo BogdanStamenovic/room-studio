@@ -50,10 +50,10 @@ function go(section) {
   renderSheet();
 }
 function renderViews() {
-  fill($('viewbar'), VIEWS.map(([id, name]) => h('button', {
+  fill($('viewbar'), [...VIEWS.map(([id, name]) => h('button', {
     type: 'button', 'aria-pressed': String(viewer.view === id),
     onclick: () => { viewer.setCamera(id); renderViews(); },
-  }, name)));
+  }, name)), h('a', { href: '/render', class: 'viewbar-link' }, 'Render')]);
 }
 
 /* --- sheet --- */

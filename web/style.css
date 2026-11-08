@@ -44,6 +44,7 @@ button { cursor: pointer; }
 #viewbar { position: absolute; top: 12px; left: 12px; display: flex; gap: 0; background: var(--mat-deep); border-radius: 4px; }
 #viewbar button { background: none; border: 0; color: var(--chalk); padding: 8px 13px; font: 500 17px/1 var(--head); border-radius: 4px; }
 #viewbar button[aria-pressed='true'] { background: var(--chalk); color: var(--graphite); }
+#viewbar .viewbar-link { color: var(--chalk); padding: 8px 13px; font: 500 17px/1 var(--head); border-radius: 4px; text-decoration: none; }
 #banner { position: absolute; top: 56px; left: 12px; right: 12px; margin: 0; max-width: 560px; color: var(--graphite); background: repeating-linear-gradient(-45deg, var(--pencil) 0 12px, #e8ad00 12px 24px); padding: 7px 12px; border-radius: 3px; font-weight: 600; font-size: 15px; }
 #draw-btn { position: absolute; right: 18px; bottom: 18px; background: var(--pencil); border: 0; color: var(--graphite); font: 700 24px/1 var(--head); padding: 15px 30px; clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%); padding-right: 42px; }
 #draw-btn:hover { background: #ffc61a; }

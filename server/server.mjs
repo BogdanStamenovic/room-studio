@@ -16,7 +16,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 const MAX_JSON = 40 * 1024 * 1024;
 const MAX_PHOTO = 40 * 1024 * 1024;
 
-const IMPORT_MAP = JSON.stringify({ imports: { three: '/vendor/three/build/three.module.js', 'three/addons/': '/vendor/three/examples/jsm/' } });
+const IMPORT_MAP = JSON.stringify({ imports: { three: '/vendor/three/build/three.module.js', 'three/addons/': '/vendor/three/examples/jsm/', 'three/examples/jsm/': '/vendor/three/examples/jsm/', 'three-mesh-bvh': '/vendor/three-mesh-bvh/build/index.module.js', 'three-gpu-pathtracer': '/vendor/three-gpu-pathtracer/build/index.module.js' } });
 const IMPORT_MAP_HASH = crypto.createHash('sha256').update(IMPORT_MAP).digest('base64');
 const CSP = `default-src 'self'; script-src 'self' 'sha256-${IMPORT_MAP_HASH}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
 
@@ -270,12 +270,20 @@ export function createServer({ store = new Store(), notify = notifyAgent, chat =
         const f = under(store.dir, pathname.slice('/files/'.length));
         return f ? serveFile(res, f, 'private, max-age=86400') : send(res, 404, 'Not found');
       }
-      if (pathname.startsWith('/vendor/three/')) {
-        const f = under(path.join(NM, 'three'), pathname.slice('/vendor/three/'.length));
-        return f ? serveFile(res, f, 'public, max-age=604800') : send(res, 404, 'Not found');
+      for (const pkg of ['three', 'three-mesh-bvh', 'three-gpu-pathtracer']) {
+        if (pathname.startsWith(`/vendor/${pkg}/`)) {
+          const f = under(path.join(NM, pkg), pathname.slice(`/vendor/${pkg}/`.length));
+          return f ? serveFile(res, f, 'public, max-age=604800') : send(res, 404, 'Not found');
+        }
       }
-      if (pathname === '/') {
-        const html = fs.readFileSync(path.join(WEB, 'index.html'), 'utf8').replace('__IMPORT_MAP__', IMPORT_MAP);
+      // Finished renders live with the data, not in this public repo: they show his room.
+      if (pathname.startsWith('/files/renders/')) {
+        const f = under(store.dir, pathname.slice('/files/'.length));
+        return f ? serveFile(res, f, 'private, max-age=3600') : send(res, 404, 'Not found');
+      }
+      if (pathname === '/' || pathname === '/render') {
+        const page = pathname === '/' ? 'index.html' : 'render.html';
+        const html = fs.readFileSync(path.join(WEB, page), 'utf8').replace('__IMPORT_MAP__', IMPORT_MAP);
         return send(res, 200, html, MIME['.html'], { 'Cache-Control': 'no-cache' });
       }
       const f = under(WEB, pathname.slice(1));
