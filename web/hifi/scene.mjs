@@ -72,7 +72,7 @@ export const VIEWS = {
   foot: { pos: [430, 4400, 760], at: [2667, 4250, 1000], fov: 58, label: 'From the bed, looking at its foot' },
   under: { pos: [760, 2300, 420], at: [2400, 3100, 1540], fov: 62, label: 'Under the seat, from the floor' },
   windows: { pos: [2560, 880, 1520], at: [300, 3700, 1120], fov: 60, label: 'Toward the windows' },
-  mirror: { pos: [1750, 3300, 1450], at: [1100, 300, 1200], fov: 58, label: 'Wardrobe and mirror' },
+  mirror: { pos: [1150, 3760, 1450], at: [1250, 300, 1150], fov: 56, label: 'Wardrobe and mirror' },
   flap: { pos: [1500, 3050, 240], at: [1900, 3819, 110], fov: 34, label: 'The flap in the bed edge' },
   box: { pos: [1500, 2450, 780], at: [2404, 3819, 800], fov: 52, label: 'Box: robot door and holds' },
 };

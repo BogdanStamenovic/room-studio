@@ -131,4 +131,8 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **Messages typed on the site are not verified Discord messages.** Any process on the box could post the same thing, so money and outward actions still need a message from Discord itself.
 - **Talk shows the last 100 channel messages** and links image attachments rather than showing them.
 - **One user, one password.** Forgotten password: `room-studio setup-link`.
+- **Render page, measured 2026-11-08 on an RTX 4060 at 1440 x 810 unless noted:** 800 path-traced samples take about 200 s, and the wall still shows faint grain after a light smoothing pass. A 360 at 2880 x 1440 with 260 samples takes about 240 s and is noticeably grainier. Stills are about 180 KB as JPEG, a 360 about 720 KB. Live orbit at 1280 x 720: 5.4 ms a frame on that GPU. On software GL 900 ms low tier and 1830 ms high, and path tracing is about 5 s a sample at 640 x 360 after a 54 s compile. Those software numbers are a floor, not a phone: **no real iPhone or laptop has run this page.**
+- **The live orbit is not the stills.** It has no real bounce light, so it is flatter and brighter. Judge the design on the stills.
+- **Refine needs the camera inside the room** and at least a 700 px short screen edge. Phones are refused by screen size, which is a guess at what they can do.
+- **Stills do not update themselves.** A design change means rerunning `scripts/render-stills.mjs`. Live orbit and Refine follow the code at once.
 - **No backups.** Measurements keep a history in the data dir, on the same disk. A deleted photo moves to `trash/` there.

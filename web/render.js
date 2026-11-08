@@ -150,6 +150,8 @@ function showPano(entry) {
   const scene = new THREE.Scene();
   const sphere = new THREE.SphereGeometry(5, 64, 40);
   sphere.scale(-1, 1, 1);
+  // The path tracer's equirect seam is half a turn from three's sphere UVs.
+  sphere.rotateY(Math.PI);
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   scene.add(new THREE.Mesh(sphere, material));
   const controls = new OrbitControls(camera, canvas);
@@ -197,7 +199,7 @@ async function startRefine() {
   try {
     status('Preparing the path tracer...');
     overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
-    overlay.addEventListener('webglcontextlost', (e) => { e.preventDefault(); session.stop = true; status('The GPU gave up on path tracing. The stills are already path traced.'); });
+    overlay.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (session.stop) return; session.stop = true; status('The GPU gave up on path tracing. The stills are already path traced.'); });
     overlay.addEventListener('pointerdown', stopRefine);
     const built = buildScene(state, { variant: ui.variant, fold: ui.fold, forPathTracer: true, M: sharedMaterials });
     const cam = raster.camera.clone();
@@ -274,7 +276,7 @@ function render() {
     bar.replaceChildren(
       el('label', { class: 'r-fold' }, 'Open', slider, 'Folded'),
       ...['hero', 'heroSouth', 'foot', 'windows', 'mirror', 'box', 'flap'].map((n) => el('button', { type: 'button', onclick: () => go(n) }, VIEWS[n].label)),
-      el('button', { type: 'button', onclick: () => raster?.setView(P(4600, -1800, 5200), P(1333, 2500, 900), 42) }, 'From outside'),
+      el('button', { type: 'button', onclick: () => raster?.setView(P(-2000, 7200, 5400), P(1450, 2700, 650), 40) }, 'From outside'),
       el('button', { type: 'button', onclick: startRefine }, 'Refine'),
     );
   }
