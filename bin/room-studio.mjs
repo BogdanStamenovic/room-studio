@@ -11,7 +11,11 @@ const ROOT = path.resolve(path.dirname(fs.realpathSync(fileURLToPath(import.meta
 const UNIT_DIR = path.join(os.homedir(), '.config/systemd/user');
 const UNIT = path.join(UNIT_DIR, 'room-studio.service');
 const die = (msg, code = 1) => { console.error(`room-studio: ${msg}`); process.exit(code); };
-const siteUrl = () => `http://archserver:${process.env.PORT || 3300}`;
+// The tailnet address, not the name: MagicDNS does not always resolve, and this is what the server binds.
+const siteUrl = () => {
+  const host = (process.env.HOST || '').split(',').find((h) => h && h !== '127.0.0.1') || '127.0.0.1';
+  return `http://${host}:${process.env.PORT || 3300}`;
+};
 
 const USAGE = `room-studio: private site for designing a room with an agent
 

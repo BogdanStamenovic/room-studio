@@ -54,6 +54,20 @@ try {
   console.log('check box:', checkText);
   assert(/Numbers agree|mm from/.test(checkText), 'measure check missing');
 
+  // Strokes must map to real floor positions, or "put it here" drawings would lie.
+  for (const view of ['plan', 'orbit', 'inside']) {
+    const got = await page.evaluate((v) => {
+      const { viewer } = window.roomStudio;
+      viewer.setCamera(v);
+      viewer.camera.updateMatrixWorld(true);
+      const p = viewer.center.clone().set(1000, 500, 0).project(viewer.camera);
+      return viewer.capture().toFloor((p.x + 1) / 2, (1 - p.y) / 2);
+    }, view);
+    console.log(`floor mapping ${view}:`, got);
+    assert(Math.abs(got[0] - 1000) <= 2 && Math.abs(got[1] - 500) <= 2, `floor mapping off in ${view}: ${got}`);
+  }
+  await page.evaluate(() => window.roomStudio.viewer.setCamera('orbit'));
+
   await page.click('#rail button:has-text("Studies")');
   await page.click('button.pick');
   await page.waitForSelector('#player:not([hidden])');
