@@ -13,6 +13,7 @@ const UNIT = path.join(UNIT_DIR, 'room-studio.service');
 const die = (msg, code = 1) => { console.error(`room-studio: ${msg}`); process.exit(code); };
 // The tailnet address, not the name: MagicDNS does not always resolve, and this is what the server binds.
 const siteUrl = () => {
+  if (process.env.ROOM_STUDIO_HTTPS_URL) return process.env.ROOM_STUDIO_HTTPS_URL;
   const host = (process.env.HOST || '').split(',').find((h) => h && h !== '127.0.0.1') || '127.0.0.1';
   return `http://${host}:${process.env.PORT || 3300}`;
 };
@@ -81,6 +82,32 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 `;
+}
+
+function tailnetName() {
+  try {
+    const s = JSON.parse(execFileSync('tailscale', ['status', '--json'], { encoding: 'utf8' }));
+    return (s.Self?.DNSName || '').replace(/\.$/, '');
+  } catch { return ''; }
+}
+
+/** Browsers only give a page the microphone over HTTPS. Failing here costs voice, not the site. */
+function enableHttps() {
+  try {
+    execFileSync('tailscale', ['serve', '--bg', '--https=443', `http://127.0.0.1:${process.env.PORT || 3300}`], { stdio: 'pipe', timeout: 60000 });
+    console.log('tailnet HTTPS is on');
+  } catch (e) {
+    console.error(`could not turn on tailnet HTTPS, so voice calls will not work: ${e.message}`);
+  }
+}
+
+function addMissingConfig(envFile) {
+  const name = tailnetName();
+  const text = fs.readFileSync(envFile, 'utf8');
+  if (name && !/^ROOM_STUDIO_HTTPS_URL=/m.test(text)) {
+    writeFileAtomic(envFile, `${text.trimEnd()}\nROOM_STUDIO_HTTPS_URL=https://${name}\n`);
+    process.env.ROOM_STUDIO_HTTPS_URL = `https://${name}`;
+  }
 }
 
 function configText() {
@@ -184,6 +211,8 @@ switch (cmd) {
     }
     fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
     if (!haveEnv) writeFileAtomic(envFile, configText());
+    addMissingConfig(envFile);
+    enableHttps();
     fs.mkdirSync(UNIT_DIR, { recursive: true });
     writeFileAtomic(UNIT, unitText());
     systemctl('daemon-reload');
@@ -194,6 +223,7 @@ switch (cmd) {
   }
   case 'remove-service': {
     try { systemctl('disable', '--now', 'room-studio.service'); } catch {}
+    try { execFileSync('tailscale', ['serve', '--https=443', 'off'], { stdio: 'pipe' }); } catch {}
     fs.rmSync(UNIT, { force: true });
     try { systemctl('daemon-reload'); } catch {}
     const d = dataDir();

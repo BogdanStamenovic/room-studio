@@ -6,8 +6,9 @@ A private website for designing a room and its furniture with an agent. It holds
 
 ```
 browser (laptop or phone, tailnet only)
-   |  password login, then a 1-year session cookie
+   |  HTTPS through Tailscale Serve; password login, then a 1-year session cookie
 server (Node, no framework) ---- data dir: JSON files, photos, drawings
+   |     \\_ WebSocket audio <-> Unix socket <-> hotline-calld (voice, ears, agent bridge)
    |                                  ^
    |  hotline --to AGENT              |  room-studio CLI (agent writes studies, reads inbox)
 agent session  <-- Discord channel (site chat reads it with hotline's bot token)
@@ -19,7 +20,8 @@ Choices that may look odd:
 - **No model file format.** A study is plain JSON of boxes and keyframes, so the agent can answer in minutes. Real CAD belongs to a later, separate project.
 - **Strokes are stored in 0 to 1 coordinates of the image**, so the on-screen preview and the sent PNG cannot drift apart. For 3D views each stroke is also projected onto the floor, giving millimetre positions.
 - **The password link is one-time.** It gets pasted into chat, so it dies when used and after 24 hours.
-- **Plain HTTP.** Tailscale already encrypts the traffic. The server binds loopback and the tailnet address, never `0.0.0.0`.
+- **HTTPS through Tailscale Serve.** Browsers refuse the microphone over plain HTTP. Serve stays tailnet-only. Issuing the certificate does put the machine's name in public certificate logs. The server itself binds loopback and the tailnet address, never `0.0.0.0`, and plain HTTP still works for everything but calls.
+- **Voice is not implemented here.** The Call button streams 16 kHz PCM to [hotline-call](https://github.com/BogdanStamenovic/hotline-call), which holds the conversation and connects `ROOM_STUDIO_AGENT` through its agent bridge. If that daemon is down, the site still works and Call says so.
 - **The chat is a shim.** There is no chat system here: it reads the agent's Discord channel and delivers through `hotline --to`. hotlined ignores bot messages, so the copy posted to the channel cannot loop back.
 
 ## Install
@@ -75,6 +77,7 @@ A study, in millimetres, with x and y on the floor (+y is north) and z up:
 ```sh
 npm test                     # geometry, login, API
 node test/browser-smoke.mjs  # the real pages in system Chrome, against throwaway data; screenshots in shots/
+node test/call-smoke.mjs     # the Call button with a fake microphone and a stand-in call service
 ```
 
 ## Limitations
@@ -87,6 +90,9 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **The check covers plan shape only.** With 15 mm tolerance it catches a wrong reading, not an error spread evenly across every measurement.
 - **Items are placed by the agent**, not by dragging. Draw where you want them.
 - **"Inside" is an orbit from near a corner**, not a walkable view.
+- **Calls are Serbian-first.** That is how hotline-call's speech recognition is set; English is misheard.
+- **Each spoken turn waits for the agent's whole reply**, usually seconds and sometimes tens of seconds, because the bridge reads a finished turn. Holding phrases fill the wait.
+- **One call at a time. A phone that locks may cut the mic.** The page asks the screen to stay on where the browser allows it.
 - **Messages typed on the site are not verified Discord messages.** Any process on the box could post the same thing, so money and outward actions still need a message from Discord itself.
 - **Talk shows the last 100 channel messages** and links image attachments rather than showing them.
 - **One user, one password.** Forgotten password: `room-studio setup-link`.

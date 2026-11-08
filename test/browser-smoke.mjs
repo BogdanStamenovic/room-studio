@@ -146,6 +146,18 @@ try {
   await m.waitForSelector('#rail button');
   await m.waitForTimeout(1000);
   await m.screenshot({ path: `${shots}/14-phone-room.png` });
+  assert(await m.locator('#callbar button:has-text("Call")').count() === 1, 'Call button missing');
+  // The live call needs a real worklet, which Playwright blocks (see call-smoke.mjs), so this only checks its layout.
+  await m.evaluate(() => {
+    document.getElementById('callbar').innerHTML = '<span class="status">0:12<span class="meter"><i style="width:60%"></i></span></span><button class="ghost">Mute</button><button class="end">Hang up</button>';
+  });
+  await m.screenshot({ path: `${shots}/18-phone-on-call.png` });
+  const clash = await m.evaluate(() => {
+    const a = document.getElementById('callbar').getBoundingClientRect();
+    return ['draw-btn', 'viewbar'].filter((id) => { const b = document.getElementById(id).getBoundingClientRect(); return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; });
+  });
+  assert(clash.length === 0, `call bar overlaps ${clash}`);
+  await m.evaluate(() => { document.getElementById('callbar').innerHTML = '<button>Call</button>'; });
   await m.click('#rail button:has-text("Measure")');
   await m.waitForTimeout(300);
   await m.screenshot({ path: `${shots}/15-phone-measure.png` });

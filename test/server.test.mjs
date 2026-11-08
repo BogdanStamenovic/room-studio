@@ -12,6 +12,15 @@ const auth = await import('../server/auth.mjs');
 const { createServer } = await import('../server/server.mjs');
 const { mapMessage, SITE_MARK } = await import('../server/chat.mjs');
 
+const { default: WebSocket } = await import('ws');
+const net = await import('node:net');
+
+// Stands in for hotline-calld's audio socket: echoes what it hears.
+const callSocket = path.join(tmp, 'call.sock');
+const echo = net.createServer((c) => { c.on('data', (d) => c.write(d)); c.on('error', () => {}); });
+await new Promise((r) => echo.listen(callSocket, r));
+let openVoice = async () => callSocket;
+
 const told = [];
 const mirrored = [];
 const store = new Store(process.env.ROOM_STUDIO_DATA);
@@ -19,10 +28,11 @@ const server = createServer({
   store,
   notify: async (t) => { told.push(t); return true; },
   chat: { read: async () => [], mirror: async (t) => { mirrored.push(t); } },
+  openVoice: () => openVoice(),
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
-test.after(() => { server.close(); server.closeAllConnections(); fs.rmSync(tmp, { recursive: true, force: true }); });
+test.after(() => { echo.close(); server.close(); server.closeAllConnections(); fs.rmSync(tmp, { recursive: true, force: true }); });
 
 let cookie = '';
 const req = (route, opts = {}) => fetch(base + route, { redirect: 'manual', ...opts, headers: { cookie, 'X-Room-Studio': '1', ...(opts.headers || {}) } });
@@ -109,4 +119,61 @@ test('channel messages map to the right speaker', () => {
   const site = mapMessage({ author: { id: 'bot', bot: true }, content: `${SITE_MARK}typed here` }, 'me');
   assert.equal(site.from, 'you');
   assert.equal(site.text, 'typed here');
+});
+
+const wsUrl = () => `ws://127.0.0.1:${server.address().port}/api/call`;
+const dial = (headers) => new WebSocket(wsUrl(), { headers });
+const originOk = () => ({ origin: base, cookie });
+const refused = (ws) => new Promise((resolve) => { ws.on('error', () => resolve(true)); ws.on('open', () => resolve(false)); });
+
+test('a call needs a session and the site\'s own origin', async () => {
+  assert.equal(await refused(dial({ origin: base })), true);
+  assert.equal(await refused(dial({ origin: 'https://evil.example', cookie })), true);
+  assert.equal(await refused(dial({ cookie })), true);
+});
+
+function collect(ws) {
+  const seen = { states: [], audio: [], errors: [] };
+  ws.on('message', (data, isBinary) => {
+    if (isBinary) seen.audio.push(Buffer.from(data));
+    else { const m = JSON.parse(data); seen.states.push(m.state); if (m.error) seen.errors.push(m.error); }
+  });
+  return seen;
+}
+const until = async (fn) => { const end = Date.now() + 2000; while (!fn() && Date.now() < end) await new Promise((r) => setTimeout(r, 10)); assert.ok(fn()); };
+
+test('call audio flows both ways, and only one call runs at a time', async () => {
+  const ws = dial(originOk());
+  const seen = collect(ws);
+  await until(() => seen.states.includes('live'));
+  ws.send(Buffer.alloc(640, 7), { binary: true });
+  await until(() => seen.audio.length > 0);
+  assert.equal(seen.audio[0][0], 7);
+  const second = dial(originOk());
+  const other = collect(second);
+  await until(() => other.states.includes('ended'));
+  assert.match(other.errors[0], /already/);
+  ws.close();
+  await new Promise((r) => setTimeout(r, 50));
+  const third = dial(originOk());
+  const again = collect(third);
+  await until(() => again.states.includes('live'));
+  third.close();
+  await new Promise((r) => setTimeout(r, 50));
+});
+
+test('a dead call service ends the call with a reason and frees the line', async () => {
+  const keep = openVoice;
+  openVoice = async () => { throw new Error('refused'); };
+  const ws = dial(originOk());
+  const seen = collect(ws);
+  await until(() => seen.states.includes('ended'));
+  assert.match(seen.errors[0], /could not start/);
+  openVoice = keep;
+  await new Promise((r) => setTimeout(r, 50));
+  const next = dial(originOk());
+  const ok = collect(next);
+  await until(() => ok.states.includes('live'));
+  next.close();
+  await new Promise((r) => setTimeout(r, 50));
 });

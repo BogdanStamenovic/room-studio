@@ -1,5 +1,6 @@
 import { Viewer } from './viewer.js';
 import { openDraw } from './draw.js';
+import { mountCallBar } from './call.js';
 import { h, markdown } from './ui.js';
 import { resolveRoom, CHECK_TOLERANCE_MM, PLACEHOLDER, WALL_NAMES, CORNER_NAMES, WALL_START } from './geometry.mjs';
 
@@ -456,6 +457,7 @@ async function start() {
   renderRail();
   renderViews();
   await refresh(true);
+  mountCallBar($('callbar'), { toast, httpsUrl: () => state.data?.httpsUrl });
   await refreshChat().catch(() => {});
   setInterval(() => refresh().catch(() => {}), 4000);
   setInterval(() => { refreshChat().catch(() => {}); }, 5000);

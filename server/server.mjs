@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Store, newId, safeId } from './store.mjs';
 import * as auth from './auth.mjs';
 import { readChannel, mirrorToChannel } from './chat.mjs';
+import { attachVoice, openCall } from './voice.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WEB = path.join(ROOT, 'web');
@@ -122,7 +123,7 @@ function cleanItem(b, prev = {}) {
   };
 }
 
-export function createServer({ store = new Store(), notify = notifyAgent, chat = { read: readChannel, mirror: mirrorToChannel } } = {}) {
+export function createServer({ store = new Store(), notify = notifyAgent, chat = { read: readChannel, mirror: mirrorToChannel }, openVoice = openCall } = {}) {
   const tell = (text) => notify(`[room-studio] ${text}`);
 
   async function api(req, res, url, parts) {
@@ -132,7 +133,7 @@ export function createServer({ store = new Store(), notify = notifyAgent, chat =
     if (m === 'GET' && resource === 'state') {
       let outline = '';
       try { outline = fs.readFileSync(path.join(ROOT, 'docs/OUTLINE.md'), 'utf8'); } catch {}
-      return json(res, 200, { rev: store.rev(), room: store.room(), items: store.items(), photos: store.photos(), drawings: store.drawings(), studies: store.studies(), outline });
+      return json(res, 200, { httpsUrl: process.env.ROOM_STUDIO_HTTPS_URL || '', rev: store.rev(), room: store.room(), items: store.items(), photos: store.photos(), drawings: store.drawings(), studies: store.studies(), outline });
     }
     if (resource === 'room' && m === 'PUT') {
       const room = cleanRoom(await readJson(req), store.room());
@@ -214,7 +215,7 @@ export function createServer({ store = new Store(), notify = notifyAgent, chat =
     throw Object.assign(new Error('not found'), { status: 404 });
   }
 
-  return http.createServer(async (req, res) => {
+  const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const pathname = decodeURIComponent(url.pathname);
     const ip = req.socket.remoteAddress;
@@ -283,6 +284,8 @@ export function createServer({ store = new Store(), notify = notifyAgent, chat =
       if (!res.headersSent) json(res, e.status || 500, { error: e.status ? e.message : 'server error' });
     }
   });
+  attachVoice(server, { authed: (req) => auth.sessionValid(cookies(req).rs_session), open: openVoice });
+  return server;
 }
 
 export function listen(server) {
@@ -292,7 +295,10 @@ export function listen(server) {
   const first = hosts[0];
   server.listen(port, first, () => console.log(`room-studio on ${first}:${port}`));
   const handler = server.listeners('request')[0];
+  const upgrade = server.listeners('upgrade')[0];
   for (const host of hosts.slice(1)) {
-    http.createServer(handler).listen(port, host, () => console.log(`room-studio on ${host}:${port}`));
+    const extra = http.createServer(handler);
+    extra.on('upgrade', upgrade);
+    extra.listen(port, host, () => console.log(`room-studio on ${host}:${port}`));
   }
 }

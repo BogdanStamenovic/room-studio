@@ -4,12 +4,19 @@
   "private": true,
   "type": "module",
   "description": "Private site for designing a room and its furniture with an agent: 3D model, drawing, animated block studies",
-  "bin": { "room-studio": "bin/room-studio.mjs" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
+  "bin": {
+    "room-studio": "bin/room-studio.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
   "dependencies": {
     "@fontsource/barlow": "5.2.8",
     "@fontsource/barlow-condensed": "5.2.8",
-    "three": "0.180.0"
+    "three": "0.180.0",
+    "ws": "8.22.1"
   },
-  "devDependencies": { "playwright-core": "1.55.0" }
+  "devDependencies": {
+    "playwright-core": "1.55.0"
+  }
 }
