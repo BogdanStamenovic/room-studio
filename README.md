@@ -92,6 +92,9 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **"Inside" is an orbit from near a corner**, not a walkable view.
 - **Calls are Serbian-first.** That is how hotline-call's speech recognition is set; English is misheard.
 - **Each spoken turn waits for the agent's whole reply**, usually seconds and sometimes tens of seconds, because the bridge reads a finished turn. Holding phrases fill the wait.
+- **Measured on one test call each, 2026-11-08, with synthesized speech:** agent connected 3.6 s after media started, first audio 2.0 s after the speaker stopped (a one-line agent reply), first call from cold about 18 s extra to load speech recognition.
+- **Hanging up takes about 25 s to reach the agent and free the GPU** (measured on one call; the audio socket closes at once, but the daemon notices later). Calling back inside that window has not been tested.
+- **Not tested on a real phone or a real microphone**, only Chrome with a fake mic and paced synthesized speech.
 - **One call at a time. A phone that locks may cut the mic.** The page asks the screen to stay on where the browser allows it.
 - **Messages typed on the site are not verified Discord messages.** Any process on the box could post the same thing, so money and outward actions still need a message from Discord itself.
 - **Talk shows the last 100 channel messages** and links image attachments rather than showing them.
