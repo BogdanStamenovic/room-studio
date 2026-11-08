@@ -230,6 +230,8 @@ export function makeMaterials({ upholstery = 'vermilion' } = {}) {
     pillow: P({ color: 0xf0ede4, roughness: 0.92, normalMap: wv, normalScale: new THREE.Vector2(0.25, 0.25), sheen: 0.5, sheenRoughness: 0.7, sheenColor: new THREE.Color(0xffffff) }),
     felt: S({ color: 0x1b1c1d, roughness: 0.96 }),
     black: S({ color: 0x141516, roughness: 0.5 }),
+    powder: P({ color: 0x1a1c1e, roughness: 0.46, clearcoat: 0.3, clearcoatRoughness: 0.45 }), // ESTIMATE: black powder coat on Design B's frame
+    figure: S({ color: 0xa9a59b, roughness: 0.78 }), // a neutral stand-in for a person, for scale only
     piano: P({ color: 0xf2f1ec, roughness: 0.3, clearcoat: 0.4, clearcoatRoughness: 0.2 }),
     ring: S({ color: 0xffffff, emissive: 0xfff4e6, emissiveIntensity: 1.6, roughness: 0.5 }),
     spot: S({ color: 0xffffff, emissive: 0xfff2dc, emissiveIntensity: 0.5, roughness: 0.4 }),

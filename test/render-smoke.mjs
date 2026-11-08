@@ -70,6 +70,20 @@ try {
   await page.screenshot({ path: `${shots}/render-orbit-south.png` });
   assert(await nonBlank(page, '#r3d') > 20, 'south variant canvas looks blank');
 
+  // Design B: no fold slider, its own views, the table's slider still there, and it builds on software GL.
+  await page.click('#r-top button:has-text("Design B")');
+  await page.waitForSelector('#r3d');
+  await page.waitForTimeout(4000);
+  assert(await page.locator('input[aria-label="Fold the seat"]').count() === 0, 'Design B has nothing to fold');
+  assert(await page.locator('input[aria-label="Open the table"]').count() === 1, 'the table stays in Design B');
+  await page.click('#r-views button:has-text("Whole room")');
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: `${shots}/render-orbit-loft.png` });
+  assert(await nonBlank(page, '#r3d') > 20, 'Design B canvas looks blank');
+  await page.click('#r-top button:has-text("Box in corner")');
+  await page.waitForSelector('input[aria-label="Fold the seat"]');
+  await page.waitForTimeout(1500);
+
   // A phone gets the low tier and no Refine dead end.
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, screen: { width: 390, height: 844 } });
   const p2 = await phone.newPage();
@@ -93,7 +107,7 @@ try {
   fs.mkdirSync(renders, { recursive: true });
   const jpg = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==', 'base64');
   fs.writeFileSync(path.join(renders, 'x.jpg'), jpg);
-  fs.writeFileSync(path.join(renders, 'manifest.json'), JSON.stringify({ stills: [{ file: 'x.jpg', label: 'Test still', variant: 'corner' }, { file: 'x.jpg', label: 'Table still', group: 'table' }], panos: [] }));
+  fs.writeFileSync(path.join(renders, 'manifest.json'), JSON.stringify({ stills: [{ file: 'x.jpg', label: 'Test still', variant: 'corner' }, { file: 'x.jpg', label: 'Table still', group: 'table' }, { file: 'x.jpg', label: 'Frame still', variant: 'loft' }, { file: 'x.jpg', label: 'Shared still' }], panos: [] }));
   const noGl = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const p3 = await noGl.newPage();
   watch(p3);
@@ -110,6 +124,12 @@ try {
   assert(await p3.locator('#r-views button:has-text("Test still")').count() === 0, 'other stills show under Table');
   await p3.click('#r-top button:has-text("Bed and seat")');
   assert(await p3.locator('#r-views button:has-text("Test still")').count() === 1, 'bed and seat still is missing');
+  // Design B lists its own stills and none of the shared ones, which show the box and seat it replaces.
+  assert(await p3.locator('#r-views button:has-text("Frame still")').count() === 0, 'Design B still shows under the other design');
+  await p3.click('#r-top button:has-text("Design B")');
+  assert(await p3.locator('#r-views button:has-text("Frame still")').count() === 1, 'Design B still is missing');
+  assert(await p3.locator('#r-views button:has-text("Shared still")').count() === 0, 'a shared still shows under Design B');
+  await p3.click('#r-top button:has-text("Box in corner")');
   await p3.click('#r-top button:has-text("Orbit")');
   await p3.waitForFunction(() => /not available/.test(document.getElementById('r-status').textContent), null, { timeout: 30000 });
   assert(await p3.locator('#still').isVisible(), 'stills must stay visible when WebGL is missing');

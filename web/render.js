@@ -13,6 +13,8 @@ const params = new URLSearchParams(location.search);
 const scripted = params.has('scripted');
 const ui = { mode: 'stills', variant: 'corner', subject: 'room', fold: 0, table: 0, still: 0, manifest: { stills: [], panos: [] } };
 let state = null;
+const LOFT_TITLE = 'Design B: steel frame, a second bed on top, a lounge arm to the door';
+const LIVE_PEOPLE = ['standing', 'loungeEdge', 'upperBed']; // only Design B draws them; for scale in the orbit
 let sharedMaterials = null;
 
 async function loadState() {
@@ -25,12 +27,12 @@ async function loadState() {
 window.hifi = {
   ready: loadState(),
   /** One path-traced image, returned as data URLs. */
-  async renderPT({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, view = 'hero', viewOverride, samples = 64, duty = 1, width = 1280, height = 720, bounces = 7, textureSize = 1024, exposure = 2.6, tone = 'neutral', equirect = null, denoise = null, jpeg = 0.9, lighting = 'day' }) {
+  async renderPT({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, people = [], view = 'hero', viewOverride, samples = 64, duty = 1, width = 1280, height = 720, bounces = 7, textureSize = 1024, exposure = 2.6, tone = 'neutral', equirect = null, denoise = null, jpeg = 0.9, lighting = 'day' }) {
     const { PathTrace } = await import('./hifi/pt.mjs');
     const c = document.createElement('canvas');
     c.width = width; c.height = height;
     const t0 = performance.now();
-    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, forPathTracer: true, lighting, M: sharedMaterials });
+    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, people, forPathTracer: true, lighting, M: sharedMaterials });
     sharedMaterials = b.materials;
     const buildMs = performance.now() - t0;
     let camera = new THREE.PerspectiveCamera(58, width / height, 0.02, 60);
@@ -53,11 +55,11 @@ window.hifi = {
     return { url, jpg, ms, firstMs, buildMs, sceneMs: pt.buildMs, tris };
   },
   /** One rasterized frame of the live mode, with a real frame time. */
-  async renderRaster({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, view = 'hero', tier = 'high', width = 1280, height = 720, frames = 12 }) {
+  async renderRaster({ variant = 'corner', fold = 0, flapOpen = 0, table = 0, tableCover = true, tableChair = true, tableTop = true, people = [], view = 'hero', tier = 'high', width = 1280, height = 720, frames = 12 }) {
     const c = document.createElement('canvas');
     c.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:${height}px;visibility:hidden`;
     document.body.append(c);
-    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, M: sharedMaterials });
+    const b = buildScene(state, { variant, fold, flapOpen, table, tableCover, tableChair, tableTop, people, M: sharedMaterials });
     sharedMaterials = b.materials;
     const r = new Raster(c, b, { tier });
     const v = VIEWS[view];
@@ -99,7 +101,7 @@ function disposeRaster() {
 }
 
 function orbitDefaults() {
-  const v = VIEWS[ui.variant === 'south' ? 'heroSouth' : 'hero'];
+  const v = VIEWS[ui.variant === 'south' ? 'heroSouth' : ui.variant === 'loft' ? 'loftDoor' : 'hero'];
   return { pos: P(...v.pos), at: P(...v.at), fov: v.fov };
 }
 
@@ -108,7 +110,7 @@ function ensureRaster(keepView = false) {
   disposeRaster();
   newCanvas();
   try {
-    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, M: sharedMaterials });
+    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, people: LIVE_PEOPLE, M: sharedMaterials });
     sharedMaterials = built.materials;
     raster = new Raster(canvas, built, { tier: params.get('tier') || pickTier() });
   } catch (e) {
@@ -201,7 +203,7 @@ async function startRefine() {
     overlay.width = overlay.clientWidth; overlay.height = overlay.clientHeight;
     overlay.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (session.stop) return; session.stop = true; status('The GPU gave up on path tracing. The stills are already path traced.'); });
     overlay.addEventListener('pointerdown', stopRefine);
-    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, forPathTracer: true, M: sharedMaterials });
+    const built = buildScene(state, { variant: ui.variant, fold: ui.fold, table: ui.table, people: LIVE_PEOPLE, forPathTracer: true, M: sharedMaterials });
     const cam = raster.camera.clone();
     cam.updateMatrixWorld(true);
     session.pt = await PathTrace.create(overlay, built, cam, { exposure: 2.6, tone: 'neutral', size: [overlay.width, overlay.height] });
@@ -241,25 +243,28 @@ function setMode(mode) {
   if (mode === 'orbit') ensureRaster();
   if (mode === 'look') {
     const p = ui.manifest.panos.find((x) => x.variant === ui.variant);
-    if (p) showPano(p);
+    if (p) showPano(p); else return setMode('stills');
   }
   render();
 }
 
 function stillsFor() {
+  // Design B's stills only: the shared ones show the box and seat, which it replaces.
+  if (ui.variant === 'loft') return ui.manifest.stills.filter((s) => s.variant === 'loft');
   return ui.manifest.stills.filter((s) => (!s.variant || s.variant === ui.variant) && (s.group || 'room') === ui.subject);
 }
 
 function render() {
   const modeBtn = (id, name, disabled) => el('button', { type: 'button', 'aria-pressed': String(ui.mode === id), ...(disabled ? { disabled: '' } : {}), onclick: () => setMode(id) }, name);
-  const variantBtn = (id, name) => el('button', { type: 'button', 'aria-pressed': String(ui.variant === id), title: VARIANTS[id].title, onclick: () => { ui.variant = id; ui.still = 0; setMode(ui.mode); } }, name);
+  const variantBtn = (id, name) => el('button', { type: 'button', 'aria-pressed': String(ui.variant === id), title: VARIANTS[id]?.title || LOFT_TITLE, onclick: () => { ui.variant = id; ui.still = 0; setMode(ui.mode); } }, name);
   const subjectBtn = (id, name) => el('button', { type: 'button', 'aria-pressed': String(ui.subject === id), onclick: () => { ui.subject = id; ui.still = 0; render(); } }, name);
   const top = $('r-top');
   top.replaceChildren(
     el('a', { href: '/' }, 'Back'),
-    el('span', { class: 'group' }, modeBtn('stills', 'Stills'), modeBtn('look', 'Look around', !ui.manifest.panos.length), modeBtn('orbit', 'Orbit')),
+    el('span', { class: 'group' }, modeBtn('stills', 'Stills'), modeBtn('look', 'Look around', !ui.manifest.panos.some((p) => p.variant === ui.variant)), modeBtn('orbit', 'Orbit')),
     el('span', { class: 'group' }, variantBtn('corner', 'Box in corner'), variantBtn('south', 'Box south')),
-    ...(ui.manifest.stills.some((s) => s.group === 'table') && ui.mode === 'stills' ? [el('span', { class: 'group' }, subjectBtn('room', 'Bed and seat'), subjectBtn('table', 'Table'))] : []),
+    el('span', { class: 'group' }, variantBtn('loft', 'Design B: steel frame')),
+    ...(ui.manifest.stills.some((s) => s.group === 'table') && ui.mode === 'stills' && ui.variant !== 'loft' ? [el('span', { class: 'group' }, subjectBtn('room', 'Bed and seat'), subjectBtn('table', 'Table'))] : []),
   );
   const bar = $('r-views');
   if (ui.mode === 'stills') {
@@ -277,10 +282,12 @@ function render() {
     const tableSlider = el('input', { type: 'range', min: '0', max: '100', value: String(ui.table * 100), 'aria-label': 'Open the table', oninput: (e) => { ui.table = e.target.value / 100; raster?.built.table.userData.setTable(ui.table); if (raster) raster.dirty = true; } });
     // The mechanism views take the duct's cover and the chair away so the parts show; every other view puts them back.
     const go = (name) => { const v = VIEWS[name]; raster?.built.table.userData.setCover(!name.startsWith('tableMech')); raster?.built.table.userData.setChair(!/^table(Mech|Lift|Leg)/.test(name)); raster?.built.table.userData.setTop(name !== 'tableMech'); raster?.setView(P(...v.pos), P(...v.at), v.fov); };
+    const loft = ui.variant === 'loft';
+    const views = loft ? ['loftRoom', 'loftDoor', 'loftBed', 'loftUpper', 'loftLounge', 'loftSitLow', 'loftPiano', 'loftRobot', 'loftProjector', 'loftLadder', 'loftJoint', 'loftFoot', 'tableRoom', 'tableRoomOpen'] : ['tableRoom', 'tableRoomOpen', 'tableClosed', 'tableOpen', 'tableSet', 'tableMech', 'tableLeg', 'tableLift', 'hero', 'heroSouth', 'foot', 'windows', 'mirror', 'box', 'flap'];
     bar.replaceChildren(
-      el('label', { class: 'r-fold' }, 'Seat open', slider, 'Folded'),
+      ...(loft ? [] : [el('label', { class: 'r-fold' }, 'Seat open', slider, 'Folded')]),
       el('label', { class: 'r-fold' }, 'Table closed', tableSlider, 'Open'),
-      ...['tableRoom', 'tableRoomOpen', 'tableClosed', 'tableOpen', 'tableSet', 'tableMech', 'tableLeg', 'tableLift', 'hero', 'heroSouth', 'foot', 'windows', 'mirror', 'box', 'flap'].map((n) => el('button', { type: 'button', onclick: () => go(n) }, VIEWS[n].label)),
+      ...views.map((n) => el('button', { type: 'button', onclick: () => go(n) }, VIEWS[n].label)),
       el('button', { type: 'button', onclick: () => raster?.setView(P(-2000, 7200, 5400), P(1450, 2700, 650), 40) }, 'From outside'),
       el('button', { type: 'button', onclick: startRefine }, 'Refine'),
     );

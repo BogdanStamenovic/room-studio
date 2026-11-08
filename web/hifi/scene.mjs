@@ -5,12 +5,13 @@ import { makeMaterials, makeSky } from './materials.mjs';
 import { buildPiano, buildRoom } from './room.mjs';
 import { buildBed, buildImage, buildPlatform } from './pieces.mjs';
 import { buildTable } from './table.mjs';
+import { buildLoft, loftPianoPlace } from './loft.mjs';
 import { pianoPlace } from './plan.mjs';
 
 /** Room coordinates in mm to world metres, Y up. */
 export const P = (x, y, z) => new THREE.Vector3(x / 1000, z / 1000, -y / 1000);
 
-export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, upholstery = 'vermilion', forPathTracer = false, lighting = 'day', table = 0, tableCover = true, tableChair = true, tableTop = true, M: shared } = {}) {
+export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, upholstery = 'vermilion', forPathTracer = false, lighting = 'day', table = 0, tableCover = true, tableChair = true, tableTop = true, people = [], M: shared } = {}) {
   const M = shared || makeMaterials({ upholstery });
   // White lacquer frame; oak disappeared into the oak floor when I tried it.
   M.bedRail = M.bedRail || M.white;
@@ -25,11 +26,13 @@ export function buildScene(state, { variant = 'corner', fold = 0, flapOpen = 0, 
   const pieces = new THREE.Group();
   root.add(pieces);
   const piano = state.items?.find((i) => i.id === 'item-piano');
-  pieces.add(buildPiano(piano, pianoPlace(variant), M));
-  const platform = buildPlatform(variant, M);
+  const loft = variant === 'loft';
+  pieces.add(buildPiano(piano, loft ? loftPianoPlace : pianoPlace(variant), M));
+  // Design B replaces the corner box and the seat. `platform` still holds a node with setFold, so the page needs no special case.
+  const platform = loft ? buildLoft(M, { people }) : buildPlatform(variant, M);
   pieces.add(platform);
   pieces.add(buildBed(M, { flapOpen }));
-  const image = buildImage(variant, M);
+  const image = loft ? null : buildImage(variant, M);
   if (image) pieces.add(image);
   platform.userData.setFold(fold);
   const tableNode = buildTable(M);
@@ -91,6 +94,18 @@ export const VIEWS = {
   tableLift: { pos: [1450, 2250, 1050], at: [330, 3100, 400], fov: 60, label: 'Lift, set stowed, server below' },
   tableRoom: { pos: [2180, 720, 1650], at: [1150, 3500, 760], fov: 72, label: 'Room: table, bed and platform' },
   tableRoomOpen: { pos: [2180, 720, 1650], at: [1000, 2800, 760], fov: 72, label: 'Room with the table open' },
+  loftRoom: { pos: [560, 640, 1980], at: [1760, 3900, 1080], fov: 74, label: 'Whole room' },
+  loftDoor: { pos: [2270, 800, 1640], at: [1450, 3400, 1120], fov: 74, label: 'The frame from the door' },
+  loftBed: { pos: [560, 4470, 500], at: [1720, 4300, 1400], fov: 84, label: 'Low bed, looking up' },
+  loftUpper: { pos: [2380, 4420, 2150], at: [300, 3700, 1420], fov: 78, label: 'On the upper bed' },
+  loftLounge: { pos: [240, 2240, 1560], at: [2400, 2560, 1560], fov: 72, label: 'Lounge, people to scale' },
+  loftSitLow: { pos: [1420, 3120, 780], at: [1300, 4350, 900], fov: 64, label: 'Sitting up on the low bed' },
+  loftJoint: { pos: [1420, 3250, 930], at: [1045, 3755, 1235], fov: 36, label: 'Joint: post, beam, plates' },
+  loftFoot: { pos: [1380, 3240, 470], at: [1050, 3785, 70], fov: 38, label: 'Foot of a post' },
+  loftPiano: { pos: [1250, 690, 1080], at: [1560, 2480, 1040], fov: 58, label: 'Piano at the edge of the arm' },
+  loftRobot: { pos: [2340, 3700, 560], at: [2320, 3000, 250], fov: 64, label: 'Robot home behind the piano' },
+  loftProjector: { pos: [430, 4400, 760], at: [2667, 4400, 930], fov: 62, label: 'Picture at the foot of the bed' },
+  loftLadder: { pos: [1120, 880, 1300], at: [2150, 1620, 1050], fov: 62, label: 'Ladder and door' },
 };
 
 export function setView(camera, name, overrides = {}) {

@@ -5,9 +5,9 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { extrude, mergeGeometries, roundRect } from './forms.mjs';
 import { BASE, CHAIR, DUCT, LEG, LIFT, MONITOR, RAIL, SERVER, SET, TABLE, chainLoopY, tableState } from './plan.mjs';
 
-const rb = (x0, x1, y0, y1, z0, z1, r = 3) => new RoundedBoxGeometry(x1 - x0, y1 - y0, z1 - z0, 2, r).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).toNonIndexed();
+export const rb = (x0, x1, y0, y1, z0, z1, r = 3) => new RoundedBoxGeometry(x1 - x0, y1 - y0, z1 - z0, 2, r).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2).toNonIndexed();
 
-function cyl(r0, r1, len, axis, x, y, z, seg = 20) {
+export function cyl(r0, r1, len, axis, x, y, z, seg = 20) {
   const g = new THREE.CylinderGeometry(r0, r1, len, seg);
   if (axis === 'x') g.rotateZ(Math.PI / 2);
   if (axis === 'z') g.rotateX(Math.PI / 2);
@@ -15,7 +15,7 @@ function cyl(r0, r1, len, axis, x, y, z, seg = 20) {
 }
 
 /** Collects geometry per material, then adds one merged mesh each, so a few hundred parts stay a few draw calls. */
-class Parts {
+export class Parts {
   constructor(M) { this.M = M; this.lists = new Map(); }
   add(mat, ...geos) { if (!this.lists.has(mat)) this.lists.set(mat, []); this.lists.get(mat).push(...geos); return this; }
   into(group) {
@@ -28,7 +28,7 @@ class Parts {
   }
 }
 
-function solo(geo, mat) { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; }
+export function solo(geo, mat) { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; }
 
 const unitRod = (r, M, mat) => solo(new THREE.CylinderGeometry(r, r, 1, 12), M[mat]);
 

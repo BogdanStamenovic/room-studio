@@ -93,6 +93,8 @@ node scripts/render-stills.mjs --base http://127.0.0.1:3300 --password P --out "
 
 It drives the real page in headless Chrome on the real GPU and writes `NAME.png`, `NAME.jpg` and `manifest.json`. Each job is the arguments of `hifi.renderPT` in `web/render.js`, plus a `label` to list it and an optional `group` (`table` files it under the Table button). Copies live in `$DATA/renders`, served behind the login, and not in this repo: the repo is public and these show his room.
 
+**Design B** is a separate option on the same page: a black steel frame with a second bed on top and a lounge arm to the door, in place of the corner box and folding seat. Its numbers are in `web/hifi/loft-plan.mjs` with a reason beside every departure from the first study, and `test/loft-plan.test.mjs` checks them against the room, the table's path and the door. `scripts/loft-study.mjs` writes its block study from those numbers, and `node scripts/loft-light.mjs` measures how much of each surface's direct view of the windows each design leaves. Figures in its stills are neutral stand-ins with a 96 cm sitting height, an estimate.
+
 `scripts/table-study.mjs` writes the table's block study from the same `plan.mjs` numbers as the render, so `room-studio study put` keeps them in step.
 
 Choices that may look odd:
@@ -101,6 +103,8 @@ Choices that may look odd:
 - **The table's top rides on a wall rail with a leg at the far corner, not telescopic slides.** A slide that extends 100 percent of its length sags most exactly where the load is. Rail, front roller and leg hold it at four points at every position, once the leg is down.
 - **Rail bare over the radiator, duct only south of it.** A cover over the radiator would stop the heat rising.
 - **Stills first, not live path tracing.** See the numbers under Limitations: a phone cannot do it, and even an RTX 4060 needs minutes.
+- **Design B's posts are not where the first study had them.** The low bed reaches the north wall and the table reaches the bed, so three study posts stood inside the mattress. The deck's north edge rests on a wall angle instead, which means it is not fully freestanding.
+- **Design B's piano faces west, at the arm's edge.** Against the wall a seated player's head would be 140 mm into the 1300 deck (estimate of 96 cm sitting height on a 480 bench).
 - **`RANDOM_TYPE` is forced to 0 in `web/hifi/pt.mjs`.** three-gpu-pathtracer 0.0.24's default sampler left a fixed per-pixel speckle on three 0.180: noise on a flat wall measured 78.0, 73.9 and 74.8 at 25, 100 and 400 samples. With plain PCG random it is 38.0, 20.4 and 10.5, halving per four times the samples as it should.
 - **Three.js stays at 0.180, the path tracer at 0.0.24.** Newer path tracer releases need three 0.185 or later, which would touch the block viewer.
 - **Sky light comes through area lights in the window holes.** Nearly every sky ray from inside a room hits a wall. The lighting map holds only the sun; camera rays still see the painted sky.
@@ -142,4 +146,5 @@ What works today: login, room shell from measurements, measurement check, fixed 
 - **Refine needs the camera inside the room** and at least a 700 px short screen edge. Phones are refused by screen size, which is a guess at what they can do.
 - **Stills do not update themselves.** A design change means rerunning `scripts/render-stills.mjs`. Live orbit and Refine follow the code at once.
 - **The table is a design, not an engineered machine.** Every size is a proposal, the radiator and the server's case are unmeasured, and no load, deflection or tipping calculation has been done. The motors' torque margins are hand estimates against REV's published stall figures. The location under the west windows is a proposal.
+- **Design B is unverified.** No section, plate, bolt, anchor, floor load or sway has been calculated; his worst-case simulation rule still applies. Radiator, fan, switches, sockets and his sitting height are unmeasured, and any of them can move a number here. Its guard rail gaps are wider than bunk-bed rules ask, since it is meant for an adult.
 - **No backups.** Measurements keep a history in the data dir, on the same disk. A deleted photo moves to `trash/` there.
